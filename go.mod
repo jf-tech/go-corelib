@@ -1,6 +1,6 @@
 module github.com/jf-tech/go-corelib
 
-go 1.12.17
+go 1.12
 
 require (
 	github.com/antchfx/xpath v1.1.10
