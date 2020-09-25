@@ -3,6 +3,7 @@ package times
 import (
 	"time"
 
+	"github.com/jf-tech/go-corelib/caches"
 	"github.com/jf-tech/go-corelib/strs"
 )
 
@@ -13,7 +14,7 @@ func OverwriteTZ(t time.Time, tz string) (time.Time, error) {
 	if !strs.IsStrNonBlank(tz) {
 		return t, nil
 	}
-	loc, err := loadLoc(tz)
+	loc, err := caches.GetTimeLocation(tz)
 	if err != nil {
 		return time.Time{}, err
 	}
@@ -28,7 +29,7 @@ func ConvertTZ(t time.Time, tz string) (time.Time, error) {
 	if !strs.IsStrNonBlank(tz) {
 		return t, nil
 	}
-	loc, err := loadLoc(tz)
+	loc, err := caches.GetTimeLocation(tz)
 	if err != nil {
 		return time.Time{}, err
 	}

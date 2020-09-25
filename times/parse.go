@@ -8,18 +8,6 @@ import (
 	"github.com/jf-tech/go-corelib/caches"
 )
 
-var locCache = caches.NewLoadingCache()
-
-func loadLoc(tz string) (*time.Location, error) {
-	loc, err := locCache.Get(tz, func(key interface{}) (interface{}, error) {
-		return time.LoadLocation(key.(string))
-	})
-	if err != nil {
-		return nil, err
-	}
-	return loc.(*time.Location), nil
-}
-
 // SmartParse parses a date time string and returns a time.Time and a tz flag indicates whether the
 // date time string contains tz info.
 // The date time string can be either date only, or date + time, or date + time + tz.
@@ -57,7 +45,7 @@ func SmartParse(s string) (t time.Time, tz bool, err error) {
 
 	if tzStr, tzFound := probeTimezoneSuffix(s); tzFound {
 		// no err checking because tz from probeTimezoneSuffix guaranteed to be valid.
-		loc, _ = loadLoc(tzStr)
+		loc, _ = caches.GetTimeLocation(tzStr)
 		// -1 for the '-' that is not included in tz.
 		s = strings.TrimSpace(s[:len(s)-len(tzStr)-1])
 	}

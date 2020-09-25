@@ -7,38 +7,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestLoadLoc(t *testing.T) {
-	for _, test := range []struct {
-		tz          string
-		expectedErr string
-	}{
-		{
-			tz:          "America/Los_Angeles",
-			expectedErr: "",
-		},
-		{
-			tz:          "America/Indiana/Indianapolis",
-			expectedErr: "",
-		},
-		{
-			tz:          "Unknown",
-			expectedErr: "unknown time zone Unknown",
-		},
-	} {
-		t.Run(test.tz, func(t *testing.T) {
-			loc, err := loadLoc(test.tz)
-			if test.expectedErr != "" {
-				assert.Error(t, err)
-				assert.Equal(t, test.expectedErr, err.Error())
-				assert.Nil(t, loc)
-			} else {
-				assert.NoError(t, err)
-				assert.Equal(t, test.tz, loc.String())
-			}
-		})
-	}
-}
-
 func TestSmartParse_Success(t *testing.T) {
 	for _, test := range []struct {
 		name            string
