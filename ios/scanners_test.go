@@ -1,4 +1,4 @@
-package iohelper
+package ios
 
 import (
 	"io"
