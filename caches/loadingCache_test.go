@@ -8,7 +8,7 @@ import (
 
 	"github.com/antchfx/xpath"
 	"github.com/stretchr/testify/assert"
-	
+
 	"github.com/jf-tech/go-corelib/maths"
 )
 
