@@ -37,6 +37,13 @@ func NewScannerByDelim(r io.Reader, delim string, flags ScannerByDelimFlag) *buf
 // consideration of potential presence of escaping sequence.
 // Note: the token returned from the scanner will **NOT** do any unescaping, thus keeping the original value.
 func NewScannerByDelim2(r io.Reader, delim string, escape *rune, flags ScannerByDelimFlag) *bufio.Scanner {
+	return NewScannerByDelim3(r, delim, escape, flags, nil)
+}
+
+// NewScannerByDelim3 creates a scanner that utilizes given buf to avoid/minimize allocation and returns tokens
+// from the source reader separated by a delimiter, with consideration of potential presence of escaping sequence.
+// Note: the token returned from the scanner will **NOT** do any unescaping, thus keeping the original value.
+func NewScannerByDelim3(r io.Reader, delim string, escape *rune, flags ScannerByDelimFlag, buf []byte) *bufio.Scanner {
 	flags &= scannerByDelimValidFlags
 
 	includeDelimLenInToken := len(delim)
@@ -47,6 +54,7 @@ func NewScannerByDelim2(r io.Reader, delim string, escape *rune, flags ScannerBy
 	eofAsDelim := flags&ScannerByDelimFlagEofAsDelim != 0
 
 	scanner := bufio.NewScanner(r)
+	scanner.Buffer(buf, bufio.MaxScanTokenSize)
 	scanner.Split(
 		func(data []byte, atEof bool) (advance int, token []byte, err error) {
 			if atEof && len(data) == 0 {
