@@ -1,7 +1,9 @@
 package strs
 
 import (
+	"bytes"
 	"strings"
+	"unicode/utf8"
 )
 
 // RunePtr returns a pointer to a rune.
@@ -148,7 +150,6 @@ func IndexWithEsc(s, delim string, esc *rune) int {
 	if esc == nil {
 		return strings.Index(s, delim)
 	}
-
 	sRunes := []rune(s)
 	delimRunes := []rune(delim)
 	escRune := *esc
@@ -163,14 +164,20 @@ func IndexWithEsc(s, delim string, esc *rune) int {
 			i++
 			continue
 		}
-		delimFound := true
-		for j := 0; j < len(delimRunes); j++ {
-			if sRunes[i+j] != delimRunes[j] {
-				delimFound = false
+		sIndex := i
+		delimIndex := 0
+		for sIndex < len(sRunes) && delimIndex < len(delimRunes) {
+			if sRunes[sIndex] == escRune {
+				sIndex += 2
+				continue
+			}
+			if sRunes[sIndex] != delimRunes[delimIndex] {
 				break
 			}
+			sIndex++
+			delimIndex++
 		}
-		if delimFound {
+		if delimIndex >= len(delimRunes) {
 			return len(string(sRunes[:i]))
 		}
 	}
@@ -192,6 +199,67 @@ func SplitWithEsc(s, delim string, esc *rune) []string {
 	}
 	split = append(split, s)
 	return split
+}
+
+// ByteSplitWithEsc is similar to SplitWithEsc but operating on []byte and []rune. Also esc is not optional.
+// cap is just an indicator to the function that what the initial cap the returned slice should be pre-allocated.
+func ByteSplitWithEsc(s []byte, delim []rune, esc rune, cap int) [][]byte {
+	if len(delim) == 0 {
+		return bytes.Split(s, nil)
+	}
+	delimByteLen := 0
+	for i := 0; i < len(delim); i++ {
+		delimByteLen += utf8.RuneLen(delim[i])
+	}
+	type runeWithIndex struct {
+		r         rune
+		byteIndex int
+	}
+	// to avoid repeatedly calling utf8.DecodeRune, let's just take the hit and do a memory allocation
+	// and convert s into runes once.
+	src := make([]runeWithIndex, 0, len(s))
+	for i := 0; ; {
+		r, size := utf8.DecodeRune(s[i:])
+		if r == utf8.RuneError {
+			break
+		}
+		src = append(src, runeWithIndex{r: r, byteIndex: i})
+		i += size
+	}
+	findDelim := func(src []runeWithIndex) int {
+		for i := 0; i < len(src)-len(delim)+1; i++ {
+			if src[i].r == esc {
+				i++
+				continue
+			}
+			srcIndex := i
+			delimIndex := 0
+			for srcIndex < len(src) && delimIndex < len(delim) {
+				if src[srcIndex].r == esc {
+					srcIndex += 2
+					continue
+				}
+				if src[srcIndex].r != delim[delimIndex] {
+					break
+				}
+				srcIndex++
+				delimIndex++
+			}
+			if delimIndex >= len(delim) {
+				return i
+			}
+		}
+		return -1
+	}
+	splits := make([][]byte, 0, cap)
+	splitBegin := 0
+	for delimIndexInSrc := findDelim(src); delimIndexInSrc >= 0; delimIndexInSrc = findDelim(src) {
+		splits = append(splits, s[splitBegin:src[delimIndexInSrc].byteIndex])
+		splitBegin = src[delimIndexInSrc].byteIndex + delimByteLen
+		src = src[delimIndexInSrc+len(delim):]
+	}
+	splits = append(splits, s[splitBegin:])
+	return splits
 }
 
 // Unescape unescapes a string with escape sequence.

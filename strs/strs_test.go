@@ -376,7 +376,7 @@ func TestIndexWithEsc(t *testing.T) {
 		},
 		{
 			name:     "len(input) > len(delim), esc present",
-			input:    "мир во всем /мире",
+			input:    "мир во всем /мире м/ире",
 			delim:    "мире",
 			esc:      RunePtr(rune('/')),
 			expected: -1,
@@ -452,6 +452,129 @@ func TestSplitWithEsc(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			assert.Equal(t, test.expected, SplitWithEsc(test.input, test.delim, test.esc))
 		})
+	}
+}
+
+func TestByteSplitWithEsc(t *testing.T) {
+	for _, test := range []struct {
+		name     string
+		input    []byte
+		delim    []rune
+		esc      rune
+		cap      int
+		expected [][]byte
+	}{
+		{
+			name:     "delim empty",
+			input:    []byte("abc"),
+			delim:    []rune{},
+			esc:      '宇',
+			cap:      0,
+			expected: [][]byte{[]byte("a"), []byte("b"), []byte("c")},
+		},
+		{
+			name:     "delim not found",
+			input:    []byte("?xyz"),
+			delim:    []rune("xyz"),
+			esc:      '?',
+			cap:      0,
+			expected: [][]byte{[]byte("?xyz")},
+		},
+		{
+			name:     "delim found",
+			input:    []byte("a*bc/*d*efg"),
+			delim:    []rune("*"),
+			esc:      '/',
+			cap:      1,
+			expected: [][]byte{[]byte("a"), []byte("bc/*d"), []byte("efg")},
+		},
+		{
+			name:     "delim not empty, input nil",
+			input:    nil,
+			delim:    []rune("*"),
+			esc:      '/',
+			cap:      0,
+			expected: [][]byte{nil},
+		},
+		{
+			name:     "delim not empty, input empty",
+			input:    []byte{},
+			delim:    []rune("*"),
+			esc:      '/',
+			cap:      0,
+			expected: [][]byte{{}},
+		},
+		{
+			name:     "multi-utf8-rune delim",
+			input:    []byte("デΩリミタabcデリミタefデリミタgデリミタ"),
+			delim:    []rune("デリミタ"),
+			esc:      'Ω',
+			cap:      10,
+			expected: [][]byte{[]byte("デΩリミタabc"), []byte("ef"), []byte("g"), {}},
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(t, test.expected, ByteSplitWithEsc(test.input, test.delim, test.esc, test.cap))
+		})
+	}
+}
+
+const (
+	splitBenchInput = "abc:efg:xyzadf%:dfa:afas:%:dfasdf:dfasdfwrqwer:3adfaz:dfa:d:d:::dfadsf:efq%"
+	splitBenchDelim = ":"
+	splitBenchEsc   = '%'
+)
+
+var (
+	splitBenchInputBytes = []byte(splitBenchInput)
+	splitBenchDelimRunes = []rune(splitBenchDelim)
+	splitBenchEscPtr     = RunePtr(splitBenchEsc)
+
+	splitBenchResult = []string{
+		"abc",
+		"efg",
+		"xyzadf%:dfa",
+		"afas",
+		"%:dfasdf",
+		"dfasdfwrqwer",
+		"3adfaz",
+		"dfa",
+		"d",
+		"d",
+		"",
+		"",
+		"dfadsf",
+		"efq%",
+	}
+
+	splitBenchResultBytes = func() [][]byte {
+		var bb [][]byte
+		for _, s := range splitBenchResult {
+			bb = append(bb, []byte(s))
+		}
+		return bb
+	}()
+)
+
+func TestForBenchmarkSplitWithEsc(t *testing.T) {
+	assert.Equal(t, splitBenchResult, SplitWithEsc(splitBenchInput, splitBenchDelim, splitBenchEscPtr))
+}
+
+func BenchmarkSplitWithEsc(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		_ = SplitWithEsc(splitBenchInput, splitBenchDelim, splitBenchEscPtr)
+	}
+}
+
+func TestForBenchmarkByteSplitWithEsc(t *testing.T) {
+	assert.Equal(t,
+		splitBenchResultBytes,
+		ByteSplitWithEsc(splitBenchInputBytes, splitBenchDelimRunes, splitBenchEsc, len(splitBenchResult)))
+}
+
+func BenchmarkByteSplitWithEsc(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		_ = ByteSplitWithEsc(splitBenchInputBytes, splitBenchDelimRunes, splitBenchEsc, len(splitBenchResult))
 	}
 }
 
