@@ -138,8 +138,18 @@ func NoErrMapSlice(src []string, f func(string) string) []string {
 	return result
 }
 
-// IndexWithEsc is similar to strings.Index but taking escape sequence into consideration.
-// For example, IndexWithEsc("abc%|efg|xyz", "|", RunePtr("%")) would return 8, not 4.
+// ByteLenOfRunes returns byte length of a rune slice.
+func ByteLenOfRunes(rs []rune) int {
+	byteLen := 0
+	for i := 0; i < len(rs); i++ {
+		byteLen += utf8.RuneLen(rs[i])
+	}
+	return byteLen
+}
+
+// IndexWithEsc is similar to strings.Index but taking escape sequence into consideration
+// and returns the byte index of the first delim appearance, if any. For example,
+// IndexWithEsc("abc%|efg|xyz", "|", RunePtr("%")) would return 8, not 4.
 func IndexWithEsc(s, delim string, esc *rune) int {
 	if len(delim) == 0 {
 		return 0
@@ -178,7 +188,7 @@ func IndexWithEsc(s, delim string, esc *rune) int {
 			delimIndex++
 		}
 		if delimIndex >= len(delimRunes) {
-			return len(string(sRunes[:i]))
+			return ByteLenOfRunes(sRunes[:i])
 		}
 	}
 
