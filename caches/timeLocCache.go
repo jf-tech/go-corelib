@@ -11,6 +11,7 @@ import (
 // be affected.
 var TimeLocationCache = NewLoadingCache()
 
+// GetTimeLocation loads a time.Location object based on IANA time zone string.
 func GetTimeLocation(tz string) (*time.Location, error) {
 	loc, err := TimeLocationCache.Get(tz, func(key interface{}) (interface{}, error) {
 		return time.LoadLocation(key.(string))
