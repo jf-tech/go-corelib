@@ -730,7 +730,8 @@ func TestByteUnescape(t *testing.T) {
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			assert.Equal(t, test.expected, ByteUnescape(test.input, test.esc))
+			assert.Equal(t, test.expected, ByteUnescape(test.input, test.esc, false))
+			assert.Equal(t, test.expected, ByteUnescape(test.input, test.esc, true))
 		})
 	}
 }
@@ -754,8 +755,9 @@ func BenchmarkUnescape(b *testing.B) {
 
 // BenchmarkByteUnescape-8       	     500	   2482229 ns/op	  402211 B/op	       1 allocs/op
 func BenchmarkByteUnescape(b *testing.B) {
-	assert.Equal(b, benchmarkUnescapeResultBytes, ByteUnescape(benchmarkUnescapeInputBytes, benchmarkUnescapeDelimBytes))
+	assert.Equal(b, benchmarkUnescapeResultBytes,
+		ByteUnescape(benchmarkUnescapeInputBytes, benchmarkUnescapeDelimBytes, false))
 	for i := 0; i < b.N; i++ {
-		_ = ByteUnescape(benchmarkUnescapeInputBytes, benchmarkUnescapeDelimBytes)
+		_ = ByteUnescape(benchmarkUnescapeInputBytes, benchmarkUnescapeDelimBytes, false)
 	}
 }
