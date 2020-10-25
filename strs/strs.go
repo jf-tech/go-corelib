@@ -294,21 +294,32 @@ func Unescape(s, esc string) string {
 	return sb.String()
 }
 
-// ByteUnescape unescapes a []byte sequence with an escape []byte sequence and
-// returns a new copy of the unescaped []byte.
-func ByteUnescape(b, esc []byte) []byte {
+// ByteUnescape unescapes a []byte sequence with an escape []byte sequence.
+// If 'inPlace' is true, the unescaping modification is taking place inside
+// the original 'b' and 'b' will be returned with length properly adjusted.
+// If 'inPlace' is false, the unescaping is taking place inside a new []byte,
+// the new []byte will be returned and the original 'b' is untouched.
+func ByteUnescape(b, esc []byte, inPlace bool) []byte {
 	if b == nil {
 		return nil
 	}
-	result := make([]byte, len(b))
+	result := b
+	if !inPlace {
+		result = make([]byte, len(b))
+	}
 	count := 0
 	copyToResult := func(src []byte) {
+		// because unescaping is strictly shrinking the slice thus
+		// this copy algo is safe when inPlace is true as well.
 		for i := 0; i < len(src); i++ {
 			result[count+i] = src[i]
 		}
 		count += len(src)
 	}
 	if len(esc) == 0 {
+		if inPlace {
+			return b
+		}
 		copyToResult(b)
 		return result[:count]
 	}
