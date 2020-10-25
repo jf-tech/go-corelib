@@ -29,28 +29,30 @@ const (
 )
 
 // NewScannerByDelim creates a scanner that returns tokens from the source reader separated by a delimiter.
-func NewScannerByDelim(r io.Reader, delim string, flags ScannerByDelimFlag) *bufio.Scanner {
+func NewScannerByDelim(r io.Reader, delim []byte, flags ScannerByDelimFlag) *bufio.Scanner {
 	return NewScannerByDelim2(r, delim, nil, flags)
 }
 
 // NewScannerByDelim2 creates a scanner that returns tokens from the source reader separated by a delimiter, with
 // consideration of potential presence of escaping sequence.
 // Note: the token returned from the scanner will **NOT** do any unescaping, thus keeping the original value.
-func NewScannerByDelim2(r io.Reader, delim string, escape *rune, flags ScannerByDelimFlag) *bufio.Scanner {
+func NewScannerByDelim2(r io.Reader, delim, escape []byte, flags ScannerByDelimFlag) *bufio.Scanner {
+	if escape == nil {
+		return NewScannerByDelim3(r, delim, nil, flags, nil)
+	}
 	return NewScannerByDelim3(r, delim, escape, flags, nil)
 }
 
 // NewScannerByDelim3 creates a scanner that utilizes given buf to avoid/minimize allocation and returns tokens
 // from the source reader separated by a delimiter, with consideration of potential presence of escaping sequence.
 // Note: the token returned from the scanner will **NOT** do any unescaping, thus keeping the original value.
-func NewScannerByDelim3(r io.Reader, delim string, escape *rune, flags ScannerByDelimFlag, buf []byte) *bufio.Scanner {
+func NewScannerByDelim3(r io.Reader, delim, escape []byte, flags ScannerByDelimFlag, buf []byte) *bufio.Scanner {
 	flags &= scannerByDelimValidFlags
 
 	includeDelimLenInToken := len(delim)
 	if flags&ScannerByDelimFlagDropDelimInReturn != 0 {
 		includeDelimLenInToken = 0
 	}
-
 	eofAsDelim := flags&ScannerByDelimFlagEofAsDelim != 0
 
 	scanner := bufio.NewScanner(r)
@@ -60,7 +62,7 @@ func NewScannerByDelim3(r io.Reader, delim string, escape *rune, flags ScannerBy
 			if atEof && len(data) == 0 {
 				return 0, nil, nil
 			}
-			if index := strs.IndexWithEsc(string(data), delim, escape); index >= 0 {
+			if index := strs.ByteIndexWithEsc(data, delim, escape); index >= 0 {
 				return index + len(delim), data[:index+includeDelimLenInToken], nil
 			}
 			if atEof && eofAsDelim {

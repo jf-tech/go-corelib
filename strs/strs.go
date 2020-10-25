@@ -147,145 +147,184 @@ func ByteLenOfRunes(rs []rune) int {
 	return byteLen
 }
 
-// IndexWithEsc is similar to strings.Index but taking escape sequence into consideration
-// and returns the byte index of the first delim appearance, if any. For example,
-// IndexWithEsc("abc%|efg|xyz", "|", RunePtr("%")) would return 8, not 4.
-func IndexWithEsc(s, delim string, esc *rune) int {
-	if len(delim) == 0 {
-		return 0
-	}
-	if len(s) == 0 {
-		return -1
-	}
-	if esc == nil {
+// IndexWithEsc searches for 'delim' inside 's' with escaping sequence taking into account.
+// Note 'delim' must not contain 'esc', or if it does, 'esc' inside 'delim' will be treated as
+// regular string.
+func IndexWithEsc(s, delim string, esc string) int {
+	if len(s) == 0 || len(delim) == 0 || len(esc) == 0 {
 		return strings.Index(s, delim)
 	}
-	sRunes := []rune(s)
-	delimRunes := []rune(delim)
-	escRune := *esc
-
-	// Yes this old dumb double loop isn't the most efficient algo but it's super easy and simple to understand
-	// and bug free compared with fancy strings.Index or bytes.Index which could potentially lead to index errors
-	// and/or rune/utf-8 bugs. Plus for vast majority of use cases, delim will be of a single rune, so effectively
-	// not much perf penalty at all.
-	for i := 0; i < len(sRunes)-len(delimRunes)+1; i++ {
-		if sRunes[i] == escRune {
-			// skip the escaped rune (aka the rune after the escape rune)
-			i++
-			continue
-		}
-		sIndex := i
-		delimIndex := 0
-		for sIndex < len(sRunes) && delimIndex < len(delimRunes) {
-			if sRunes[sIndex] == escRune {
-				sIndex += 2
-				continue
-			}
-			if sRunes[sIndex] != delimRunes[delimIndex] {
+	isEscPreceding := func(i int) bool {
+		// this func check if there is an effective 'esc' directly preceding
+		// the byte at i. it is not trivial to check the byte sequence right
+		// before i, because we can have multiple 'esc' escaping each other.
+		// so we need to backtrack (hopefully not for too far)
+		escFound := 0
+		for i >= len(esc) {
+			if strings.Index(s[i-len(esc):i], esc) < 0 {
 				break
 			}
-			sIndex++
-			delimIndex++
+			escFound++
+			i -= len(esc)
 		}
-		if delimIndex >= len(delimRunes) {
-			return ByteLenOfRunes(sRunes[:i])
-		}
+		return escFound%2 == 1
 	}
-
-	return -1
+	begin := 0
+	for {
+		i := strings.Index(s[begin:], delim)
+		if i < 0 {
+			return i
+		}
+		begin += i
+		// we've found the 'delim', looks like this:
+		//   s [..............delim...........]
+		//                    ^begin
+		// However, we need to check if there is an effective 'esc' directly preceding 'delim'
+		// or not. If yes, we will have to skip the first rune inside the 'delim' (because it
+		// is escaped by the preceding 'esc') and redo the whole process.
+		if isEscPreceding(begin) {
+			// no need to check utf8.RuneError because we've come here because we've found 'delim'
+			// at 'begin' and 'len(delim)' isn't 0, so there is at least one rune there at 'begin'.
+			_, size := utf8.DecodeRuneInString(s[begin:])
+			begin += size
+			continue
+		}
+		return begin
+	}
 }
 
 // SplitWithEsc is similar to strings.Split but taking escape sequence into consideration.
-// For example, SplitWithEsc("abc%|efg|xyz", "|", RunePtr("%")) would return []string{"abc%|efg", "xyz"}.
-func SplitWithEsc(s, delim string, esc *rune) []string {
-	if len(delim) == 0 || esc == nil {
+// For example, SplitWithEsc("abc%|efg|xyz", "|", "%") would return []string{"abc%|efg", "xyz"}.
+func SplitWithEsc(s, delim string, esc string) []string {
+	if len(s) == 0 || len(delim) == 0 || len(esc) == 0 {
 		return strings.Split(s, delim)
 	}
-	// From here on, delim != empty **and** esc is set.
 	var split []string
-	for delimIndex := IndexWithEsc(s, delim, esc); delimIndex >= 0; delimIndex = IndexWithEsc(s, delim, esc) {
-		split = append(split, s[:delimIndex])
-		s = s[delimIndex+len(delim):]
+	for index := IndexWithEsc(s, delim, esc); index >= 0; index = IndexWithEsc(s, delim, esc) {
+		split = append(split, s[:index])
+		s = s[index+len(delim):]
 	}
 	split = append(split, s)
 	return split
 }
 
-// ByteSplitWithEsc is similar to SplitWithEsc but operating on []byte and []rune. Also esc is not optional.
-// cap is just an indicator to the function that what the initial cap the returned slice should be pre-allocated.
-func ByteSplitWithEsc(s []byte, delim []rune, esc rune, cap int) [][]byte {
-	if len(delim) == 0 {
-		return bytes.Split(s, nil)
+// ByteIndexWithEsc searches for 'delim' inside 's' with escaping sequence taking into account.
+// Note 'delim' must not contain 'esc', or if it does, 'esc' inside 'delim' will be treated as
+// regular bytes.
+func ByteIndexWithEsc(s, delim, esc []byte) int {
+	if len(s) == 0 || len(delim) == 0 || len(esc) == 0 {
+		return bytes.Index(s, delim)
 	}
-	delimByteLen := 0
-	for i := 0; i < len(delim); i++ {
-		delimByteLen += utf8.RuneLen(delim[i])
-	}
-	type runeWithIndex struct {
-		r         rune
-		byteIndex int
-	}
-	// to avoid repeatedly calling utf8.DecodeRune, let's just take the hit and do a memory allocation
-	// and convert s into runes once.
-	src := make([]runeWithIndex, 0, len(s))
-	for i := 0; ; {
-		r, size := utf8.DecodeRune(s[i:])
-		if r == utf8.RuneError {
-			break
+	isEscPreceding := func(i int) bool {
+		// this func check if there is an effective 'esc' directly preceding
+		// the byte at i. it is not trivial to check the byte sequence right
+		// before i, because we can have multiple 'esc' escaping each other.
+		// so we need to backtrack (hopefully not for too far)
+		escFound := 0
+		for i >= len(esc) {
+			if bytes.Index(s[i-len(esc):i], esc) < 0 {
+				break
+			}
+			escFound++
+			i -= len(esc)
 		}
-		src = append(src, runeWithIndex{r: r, byteIndex: i})
-		i += size
+		return escFound%2 == 1
 	}
-	findDelim := func(src []runeWithIndex) int {
-		for i := 0; i < len(src)-len(delim)+1; i++ {
-			if src[i].r == esc {
-				i++
-				continue
-			}
-			srcIndex := i
-			delimIndex := 0
-			for srcIndex < len(src) && delimIndex < len(delim) {
-				if src[srcIndex].r == esc {
-					srcIndex += 2
-					continue
-				}
-				if src[srcIndex].r != delim[delimIndex] {
-					break
-				}
-				srcIndex++
-				delimIndex++
-			}
-			if delimIndex >= len(delim) {
-				return i
-			}
+	begin := 0
+	for {
+		i := bytes.Index(s[begin:], delim)
+		if i < 0 {
+			return i
 		}
-		return -1
+		begin += i
+		// we've found the 'delim', looks like this:
+		//   s [..............delim...........]
+		//                    ^begin
+		// However, we need to check if there is an effective 'esc' directly preceding 'delim'
+		// or not. If yes, we will have to skip the first rune inside the 'delim' (because it
+		// is escaped by the preceding 'esc') and redo the whole process.
+		if isEscPreceding(begin) {
+			// no need to check utf8.RuneError because we've come here because we've found 'delim'
+			// at 'begin' and 'len(delim)' isn't 0, so there is at least one rune there at 'begin'.
+			_, size := utf8.DecodeRune(s[begin:])
+			begin += size
+			continue
+		}
+		return begin
+	}
+}
+
+// ByteSplitWithEsc is similar to SplitWithEsc but operating on []byte. 'cap' is just an indicator to
+// the function that what the initial cap the returned split slice should be pre-allocated.
+func ByteSplitWithEsc(s, delim, esc []byte, cap int) [][]byte {
+	if len(s) == 0 || len(delim) == 0 || len(esc) == 0 {
+		return bytes.Split(s, delim)
 	}
 	splits := make([][]byte, 0, cap)
-	splitBegin := 0
-	for delimIndexInSrc := findDelim(src); delimIndexInSrc >= 0; delimIndexInSrc = findDelim(src) {
-		splits = append(splits, s[splitBegin:src[delimIndexInSrc].byteIndex])
-		splitBegin = src[delimIndexInSrc].byteIndex + delimByteLen
-		src = src[delimIndexInSrc+len(delim):]
+	for index := ByteIndexWithEsc(s, delim, esc); index >= 0; index = ByteIndexWithEsc(s, delim, esc) {
+		splits = append(splits, s[:index])
+		s = s[index+len(delim):]
 	}
-	splits = append(splits, s[splitBegin:])
+	splits = append(splits, s)
 	return splits
 }
 
 // Unescape unescapes a string with escape sequence.
-// For example, SplitWithEsc("abc%|efg", RunePtr("%")) would return "abc|efg".
-func Unescape(s string, esc *rune) string {
-	if esc == nil {
+// For example, SplitWithEsc("abc%|efg", "%") would return "abc|efg".
+func Unescape(s, esc string) string {
+	if len(esc) == 0 {
 		return s
 	}
-	sRunes := []rune(s)
-	escRune := *esc
-	for i := 0; i < len(sRunes); i++ {
-		if sRunes[i] != escRune {
-			continue
+	sb := strings.Builder{}
+	sb.Grow(len(s))
+	for {
+		i := strings.Index(s, esc)
+		if i < 0 {
+			sb.WriteString(s)
+			break
 		}
-		copy(sRunes[i:], sRunes[i+1:])
-		sRunes = sRunes[:len(sRunes)-1]
+		sb.WriteString(s[:i])
+		r, size := utf8.DecodeRuneInString(s[i+len(esc):])
+		if r == utf8.RuneError {
+			break
+		}
+		sb.WriteRune(r)
+		s = s[i+len(esc)+size:]
 	}
-	return string(sRunes)
+	return sb.String()
+}
+
+// ByteUnescape unescapes a []byte sequence with an escape []byte sequence and
+// returns a new copy of the unescaped []byte.
+func ByteUnescape(b, esc []byte) []byte {
+	if b == nil {
+		return nil
+	}
+	result := make([]byte, len(b))
+	count := 0
+	copyToResult := func(src []byte) {
+		for i := 0; i < len(src); i++ {
+			result[count+i] = src[i]
+		}
+		count += len(src)
+	}
+	if len(esc) == 0 {
+		copyToResult(b)
+		return result[:count]
+	}
+	for {
+		i := bytes.Index(b, esc)
+		if i < 0 {
+			copyToResult(b)
+			break
+		}
+		copyToResult(b[:i])
+		r, size := utf8.DecodeRune(b[i+len(esc):])
+		if r == utf8.RuneError {
+			break
+		}
+		copyToResult(b[i+len(esc) : i+len(esc)+size])
+		b = b[i+len(esc)+size:]
+	}
+	return result[:count]
 }

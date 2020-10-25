@@ -9,6 +9,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestRunePtr(t *testing.T) {
+	rp := RunePtr('p')
+	assert.NotNil(t, rp)
+	assert.Equal(t, 'p', *rp)
+}
+
 func TestStrPtr(t *testing.T) {
 	sp := StrPtr("pi")
 	assert.NotNil(t, sp)
@@ -334,7 +340,7 @@ func TestIndexWithEsc(t *testing.T) {
 		name     string
 		input    string
 		delim    string
-		esc      *rune
+		esc      string
 		expected int
 	}{
 		// All edge cases:
@@ -342,21 +348,21 @@ func TestIndexWithEsc(t *testing.T) {
 			name:     "delim empty",
 			input:    "abc",
 			delim:    "",
-			esc:      RunePtr('宇'),
+			esc:      "宇",
 			expected: 0,
 		},
 		{
 			name:     "esc empty",
 			input:    "abc",
 			delim:    "bc",
-			esc:      nil,
+			esc:      "",
 			expected: 1,
 		},
 		{
 			name:     "input empty, delim non empty, esc non empty",
 			input:    "",
 			delim:    "abc",
-			esc:      RunePtr('宙'),
+			esc:      "宙",
 			expected: -1,
 		},
 		// normal non empty cases:
@@ -364,42 +370,42 @@ func TestIndexWithEsc(t *testing.T) {
 			name:     "len(input) < len(delim)",
 			input:    "a",
 			delim:    "abc",
-			esc:      RunePtr('洪'),
+			esc:      "洪",
 			expected: -1,
 		},
 		{
 			name:     "len(input) == len(delim), esc not present",
 			input:    "abc",
 			delim:    "abc",
-			esc:      RunePtr('荒'),
+			esc:      "荒",
 			expected: 0,
 		},
 		{
 			name:     "len(input) > len(delim), esc not present",
 			input:    "мир во всем мире",
 			delim:    "мире",
-			esc:      RunePtr('Ф'),
+			esc:      "Ф",
 			expected: len("мир во всем "),
 		},
 		{
 			name:     "len(input) > len(delim), esc present",
 			input:    "мир во всем /мире м/ире",
 			delim:    "мире",
-			esc:      RunePtr('/'),
+			esc:      "/",
 			expected: -1,
 		},
 		{
 			name:     "len(input) > len(delim), esc present",
 			input:    "мир во всем ξξмире",
 			delim:    "мире",
-			esc:      RunePtr('ξ'),
+			esc:      "ξ",
 			expected: len("мир во всем ξξ"),
 		},
 		{
 			name:     "len(input) > len(delim), consecutive esc present",
 			input:    "мир во вξξξξξсем ξξмире",
 			delim:    "ире",
-			esc:      RunePtr('ξ'),
+			esc:      "ξ",
 			expected: len("мир во вξξξξξсем ξξм"),
 		},
 	} {
@@ -412,10 +418,10 @@ func TestIndexWithEsc(t *testing.T) {
 	}
 }
 
-// BenchmarkIndexWithEsc-8       	 5000000	       323 ns/op	       0 B/op	       0 allocs/op
+// BenchmarkIndexWithEsc-8       	50000000	        28.9 ns/op	       0 B/op	       0 allocs/op
 func BenchmarkIndexWithEsc(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		if IndexWithEsc("мир во вξξξξξсем ξξмире", "ире", RunePtr('ξ')) < 0 {
+		if IndexWithEsc("мир во вξξξξξсем ξξмире", "ире", "ξ") < 0 {
 			b.FailNow()
 		}
 	}
@@ -426,42 +432,42 @@ func TestSplitWithEsc(t *testing.T) {
 		name     string
 		input    string
 		delim    string
-		esc      *rune
+		esc      string
 		expected []string
 	}{
 		{
 			name:     "delim empty",
 			input:    "abc",
 			delim:    "",
-			esc:      RunePtr('宇'),
+			esc:      "宇",
 			expected: []string{"a", "b", "c"},
 		},
 		{
 			name:     "esc not set",
 			input:    "",
 			delim:    "abc",
-			esc:      nil,
+			esc:      "",
 			expected: []string{""},
 		},
 		{
 			name:     "esc set, delim not found",
 			input:    "?xyz",
 			delim:    "xyz",
-			esc:      RunePtr('?'),
+			esc:      "?",
 			expected: []string{"?xyz"},
 		},
 		{
 			name:     "esc set, delim found",
 			input:    "a*bc/*d*efg",
 			delim:    "*",
-			esc:      RunePtr('/'),
+			esc:      "/",
 			expected: []string{"a", "bc/*d", "efg"},
 		},
 		{
 			name:     "esc set, delim not empty, input empty",
 			input:    "",
 			delim:    "*",
-			esc:      RunePtr('/'),
+			esc:      "/",
 			expected: []string{""},
 		},
 	} {
@@ -471,60 +477,117 @@ func TestSplitWithEsc(t *testing.T) {
 	}
 }
 
+func TestByteIndexWithEsc(t *testing.T) {
+	for _, test := range []struct {
+		name     string
+		s        []byte
+		delim    []byte
+		esc      []byte
+		expected int
+	}{
+		{
+			name:     "esc nil; bytes.Index used",
+			s:        []byte("abc#ef##g"),
+			delim:    []byte("##"),
+			esc:      nil,
+			expected: 6,
+		},
+		{
+			name:     "esc non-empty; delim nil; bytes.Index used",
+			s:        []byte("abc#ef##g"),
+			delim:    nil,
+			esc:      []byte("%"),
+			expected: 0,
+		},
+		{
+			name:     "esc non-empty; no delim found",
+			s:        []byte("abc%#ef%#"),
+			delim:    []byte("##"),
+			esc:      []byte("%"),
+			expected: -1,
+		},
+		{
+			name:     "esc non-empty; delim found, no esc involved",
+			s:        []byte("abc#ef##g"),
+			delim:    []byte("##"),
+			esc:      []byte("%"),
+			expected: 6,
+		},
+		{
+			name:     "delim preceded by even number of esc",
+			s:        []byte("ab%%%%##ef#g"),
+			delim:    []byte("##"),
+			esc:      []byte("%%"),
+			expected: 6,
+		},
+		{
+			name:     "delim preceded by odd number of esc",
+			s:        []byte("%^%^%^###ef#g"),
+			delim:    []byte("##"),
+			esc:      []byte("%^"),
+			expected: 7,
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(t, test.expected, ByteIndexWithEsc(test.s, test.delim, test.esc))
+		})
+	}
+}
+
 func TestByteSplitWithEsc(t *testing.T) {
 	for _, test := range []struct {
 		name     string
 		input    []byte
-		delim    []rune
-		esc      rune
+		delim    []byte
+		esc      []byte
 		cap      int
 		expected [][]byte
 	}{
 		{
 			name:     "delim empty",
 			input:    []byte("abc"),
-			delim:    []rune{},
-			esc:      '宇',
+			delim:    []byte{},
+			esc:      []byte("宇"),
 			cap:      0,
 			expected: [][]byte{[]byte("a"), []byte("b"), []byte("c")},
 		},
 		{
 			name:     "delim not found",
 			input:    []byte("?xyz"),
-			delim:    []rune("xyz"),
-			esc:      '?',
+			delim:    []byte("xyz"),
+			esc:      []byte("?"),
 			cap:      0,
 			expected: [][]byte{[]byte("?xyz")},
 		},
 		{
 			name:     "delim found",
 			input:    []byte("a*bc/*d*efg"),
-			delim:    []rune("*"),
-			esc:      '/',
+			delim:    []byte("*"),
+			esc:      []byte("/"),
 			cap:      1,
 			expected: [][]byte{[]byte("a"), []byte("bc/*d"), []byte("efg")},
 		},
 		{
 			name:     "delim not empty, input nil",
 			input:    nil,
-			delim:    []rune("*"),
-			esc:      '/',
+			delim:    []byte("*"),
+			esc:      []byte("/"),
 			cap:      0,
 			expected: [][]byte{nil},
 		},
 		{
 			name:     "delim not empty, input empty",
 			input:    []byte{},
-			delim:    []rune("*"),
-			esc:      '/',
+			delim:    []byte("*"),
+			esc:      []byte("/"),
 			cap:      0,
 			expected: [][]byte{{}},
 		},
 		{
 			name:     "multi-utf8-rune delim",
 			input:    []byte("デΩリミタabcデリミタefデリミタgデリミタ"),
-			delim:    []rune("デリミタ"),
-			esc:      'Ω',
+			delim:    []byte("デリミタ"),
+			esc:      []byte("Ω"),
 			cap:      10,
 			expected: [][]byte{[]byte("デΩリミタabc"), []byte("ef"), []byte("g"), {}},
 		},
@@ -538,13 +601,13 @@ func TestByteSplitWithEsc(t *testing.T) {
 const (
 	splitBenchInput = "abc:efg:xyzadf%:dfa:afas:%:dfasdf:dfasdfwrqwer:3adfaz:dfa:d:d:::dfadsf:efq%"
 	splitBenchDelim = ":"
-	splitBenchEsc   = '%'
+	splitBenchEsc   = "%"
 )
 
 var (
 	splitBenchInputBytes = []byte(splitBenchInput)
-	splitBenchDelimRunes = []rune(splitBenchDelim)
-	splitBenchEscPtr     = RunePtr(splitBenchEsc)
+	splitBenchDelimBytes = []byte(splitBenchDelim)
+	splitBenchEscBytes   = []byte(splitBenchEsc)
 
 	splitBenchResult = []string{
 		"abc",
@@ -573,26 +636,26 @@ var (
 )
 
 func TestForBenchmarkSplitWithEsc(t *testing.T) {
-	assert.Equal(t, splitBenchResult, SplitWithEsc(splitBenchInput, splitBenchDelim, splitBenchEscPtr))
+	assert.Equal(t, splitBenchResult, SplitWithEsc(splitBenchInput, splitBenchDelim, splitBenchEsc))
 }
 
-// BenchmarkSplitWithEsc-8       	 1000000	      2041 ns/op	    2000 B/op	      11 allocs/op
+// BenchmarkSplitWithEsc-8       	 2000000	       848 ns/op	     496 B/op	       5 allocs/op
 func BenchmarkSplitWithEsc(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		_ = SplitWithEsc(splitBenchInput, splitBenchDelim, splitBenchEscPtr)
+		_ = SplitWithEsc(splitBenchInput, splitBenchDelim, splitBenchEsc)
 	}
 }
 
 func TestForBenchmarkByteSplitWithEsc(t *testing.T) {
 	assert.Equal(t,
 		splitBenchResultBytes,
-		ByteSplitWithEsc(splitBenchInputBytes, splitBenchDelimRunes, splitBenchEsc, len(splitBenchResult)))
+		ByteSplitWithEsc(splitBenchInputBytes, splitBenchDelimBytes, splitBenchEscBytes, len(splitBenchResult)))
 }
 
-// BenchmarkByteSplitWithEsc-8   	 1000000	      1097 ns/op	    1632 B/op	       2 allocs/op
+// BenchmarkByteSplitWithEsc-8   	 2000000	       637 ns/op	     352 B/op	       1 allocs/op
 func BenchmarkByteSplitWithEsc(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		_ = ByteSplitWithEsc(splitBenchInputBytes, splitBenchDelimRunes, splitBenchEsc, len(splitBenchResult))
+		_ = ByteSplitWithEsc(splitBenchInputBytes, splitBenchDelimBytes, splitBenchEscBytes, len(splitBenchResult))
 	}
 }
 
@@ -600,30 +663,99 @@ func TestUnescape(t *testing.T) {
 	for _, test := range []struct {
 		name     string
 		input    string
-		esc      *rune
+		esc      string
 		expected string
 	}{
 		{
-			name:     "esc not set",
+			name:     "esc empty",
 			input:    "abc",
-			esc:      nil,
+			esc:      "",
 			expected: "abc",
 		},
 		{
-			name:     "esc set, input empty",
+			name:     "ecs non-empty, input empty",
 			input:    "",
-			esc:      RunePtr('宇'),
+			esc:      "宇",
 			expected: "",
 		},
 		{
-			name:     "esc set, input non empty",
-			input:    "ξξabcξdξ",
-			esc:      RunePtr('ξ'),
-			expected: "ξabcd",
+			name:     "esc non-empty, input non empty",
+			input:    "ξξabcξdξξ",
+			esc:      "ξξ",
+			expected: "abcξd",
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			assert.Equal(t, test.expected, Unescape(test.input, test.esc))
+			assert.Equal(t, test.expected, Unescape(test.input, string(test.esc)))
 		})
+	}
+}
+
+func TestByteUnescape(t *testing.T) {
+	for _, test := range []struct {
+		name     string
+		input    []byte
+		esc      []byte
+		expected []byte
+	}{
+		{
+			name:     "input nil",
+			input:    nil,
+			esc:      []byte("%"),
+			expected: nil,
+		},
+		{
+			name:     "input empty, esc nil",
+			input:    []byte(""),
+			esc:      nil,
+			expected: []byte(""),
+		},
+		{
+			name:     "input non empty, esc empty",
+			input:    []byte("abc"),
+			esc:      nil,
+			expected: []byte("abc"),
+		},
+		{
+			name:     "input non-empty, esc non empty, esc not found",
+			input:    []byte("ξξabcξdξξ"),
+			esc:      []byte("ξξ$"),
+			expected: []byte("ξξabcξdξξ"),
+		},
+		{
+			name:     "input non-empty, esc non empty, esc found",
+			input:    []byte("ξξabcξdξξ"),
+			esc:      []byte("ξξ"),
+			expected: []byte("abcξd"),
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(t, test.expected, ByteUnescape(test.input, test.esc))
+		})
+	}
+}
+
+var (
+	benchmarkUnescapeInput       = strings.Repeat("abc#", 100000)
+	benchmarkUnescapeInputBytes  = []byte(benchmarkUnescapeInput)
+	benchmarkUnescapeDelim       = "#"
+	benchmarkUnescapeDelimBytes  = []byte(benchmarkUnescapeDelim)
+	benchmarkUnescapeResult      = strings.Repeat("abc", 100000)
+	benchmarkUnescapeResultBytes = []byte(benchmarkUnescapeResult)
+)
+
+// BenchmarkUnescape-8           	    1000	   2321659 ns/op	  401810 B/op	       1 allocs/op
+func BenchmarkUnescape(b *testing.B) {
+	assert.Equal(b, benchmarkUnescapeResult, Unescape(benchmarkUnescapeInput, benchmarkUnescapeDelim))
+	for i := 0; i < b.N; i++ {
+		_ = Unescape(benchmarkUnescapeInput, benchmarkUnescapeDelim)
+	}
+}
+
+// BenchmarkByteUnescape-8       	     500	   2482229 ns/op	  402211 B/op	       1 allocs/op
+func BenchmarkByteUnescape(b *testing.B) {
+	assert.Equal(b, benchmarkUnescapeResultBytes, ByteUnescape(benchmarkUnescapeInputBytes, benchmarkUnescapeDelimBytes))
+	for i := 0; i < b.N; i++ {
+		_ = ByteUnescape(benchmarkUnescapeInputBytes, benchmarkUnescapeDelimBytes)
 	}
 }
