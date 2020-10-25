@@ -717,7 +717,13 @@ func TestByteUnescape(t *testing.T) {
 			expected: []byte("abc"),
 		},
 		{
-			name:     "esc non-empty, esc non empty",
+			name:     "input non-empty, esc non empty, esc not found",
+			input:    []byte("ξξabcξdξξ"),
+			esc:      []byte("ξξ$"),
+			expected: []byte("ξξabcξdξξ"),
+		},
+		{
+			name:     "input non-empty, esc non empty, esc found",
 			input:    []byte("ξξabcξdξξ"),
 			esc:      []byte("ξξ"),
 			expected: []byte("abcξd"),
