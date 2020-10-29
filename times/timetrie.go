@@ -12,125 +12,125 @@ import (
 )
 
 type trieEntry struct {
-	pattern string
-	layout  string
-	tz      bool
+	Pattern string
+	Layout  string
+	TZ      bool
 }
 
 var dateEntries = []trieEntry{
 	// all date formats connected with '-'
-	{pattern: "0000-00-00", layout: "2006-01-02"},
-	{pattern: "00-00-0000", layout: "01-02-2006"},
+	{Pattern: "0000-00-00", Layout: "2006-01-02"},
+	{Pattern: "00-00-0000", Layout: "01-02-2006"},
 
 	// all date formats connected with '/'
-	{pattern: "0000/00/00", layout: "2006/01/02"},
-	{pattern: "00/00/0000", layout: "01/02/2006"},
-	{pattern: "0/00/0000", layout: "1/02/2006"},
-	{pattern: "0/0/0000", layout: "1/2/2006"},
-	{pattern: "00/0/0000", layout: "01/2/2006"},
-	{pattern: "00/00/00", layout: "01/02/06"},
+	{Pattern: "0000/00/00", Layout: "2006/01/02"},
+	{Pattern: "00/00/0000", Layout: "01/02/2006"},
+	{Pattern: "0/00/0000", Layout: "1/02/2006"},
+	{Pattern: "0/0/0000", Layout: "1/2/2006"},
+	{Pattern: "00/0/0000", Layout: "01/2/2006"},
+	{Pattern: "00/00/00", Layout: "01/02/06"},
 
 	// all date formats with no delimiter
-	{pattern: "00000000", layout: "20060102"},
+	{Pattern: "00000000", Layout: "20060102"},
 }
 
 // The delim char between date and time.
-var dateTimeDelims = []string{"T", " "}
+var dateTimeDelims = []string{"T", " ", ""}
 
 var timeEntries = []trieEntry{
 	// hh:mm[:ss[.sssssssss]]
-	{pattern: "00:00:00", layout: "15:04:05"},
-	{pattern: "00:00:00.0", layout: "15:04:05"},
-	{pattern: "00:00:00.00", layout: "15:04:05"},
-	{pattern: "00:00:00.000", layout: "15:04:05"},
-	{pattern: "00:00:00.0000", layout: "15:04:05"},
-	{pattern: "00:00:00.00000", layout: "15:04:05"},
-	{pattern: "00:00:00.000000", layout: "15:04:05"},
-	{pattern: "00:00:00.0000000", layout: "15:04:05"},
-	{pattern: "00:00:00.00000000", layout: "15:04:05"},
-	{pattern: "00:00:00.000000000", layout: "15:04:05"},
-	{pattern: "00:00", layout: "15:04"},
+	{Pattern: "00:00:00", Layout: "15:04:05"},
+	{Pattern: "00:00:00.0", Layout: "15:04:05"},
+	{Pattern: "00:00:00.00", Layout: "15:04:05"},
+	{Pattern: "00:00:00.000", Layout: "15:04:05"},
+	{Pattern: "00:00:00.0000", Layout: "15:04:05"},
+	{Pattern: "00:00:00.00000", Layout: "15:04:05"},
+	{Pattern: "00:00:00.000000", Layout: "15:04:05"},
+	{Pattern: "00:00:00.0000000", Layout: "15:04:05"},
+	{Pattern: "00:00:00.00000000", Layout: "15:04:05"},
+	{Pattern: "00:00:00.000000000", Layout: "15:04:05"},
+	{Pattern: "00:00", Layout: "15:04"},
 
 	// hhmm[ss]
-	{pattern: "000000", layout: "150405"},
-	{pattern: "0000", layout: "1504"},
+	{Pattern: "000000", Layout: "150405"},
+	{Pattern: "0000", Layout: "1504"},
 
 	// hh:mm[:ss[.sssssssss]] AM
-	{pattern: "00:00:00 AM", layout: "03:04:05 PM"},
-	{pattern: "00:00:00.0 AM", layout: "03:04:05 PM"},
-	{pattern: "00:00:00.00 AM", layout: "03:04:05 PM"},
-	{pattern: "00:00:00.000 AM", layout: "03:04:05 PM"},
-	{pattern: "00:00:00.0000 AM", layout: "03:04:05 PM"},
-	{pattern: "00:00:00.00000 AM", layout: "03:04:05 PM"},
-	{pattern: "00:00:00.000000 AM", layout: "03:04:05 PM"},
-	{pattern: "00:00:00.0000000 AM", layout: "03:04:05 PM"},
-	{pattern: "00:00:00.00000000 AM", layout: "03:04:05 PM"},
-	{pattern: "00:00:00.000000000 AM", layout: "03:04:05 PM"},
-	{pattern: "00:00 AM", layout: "03:04 PM"},
+	{Pattern: "00:00:00 AM", Layout: "03:04:05 PM"},
+	{Pattern: "00:00:00.0 AM", Layout: "03:04:05 PM"},
+	{Pattern: "00:00:00.00 AM", Layout: "03:04:05 PM"},
+	{Pattern: "00:00:00.000 AM", Layout: "03:04:05 PM"},
+	{Pattern: "00:00:00.0000 AM", Layout: "03:04:05 PM"},
+	{Pattern: "00:00:00.00000 AM", Layout: "03:04:05 PM"},
+	{Pattern: "00:00:00.000000 AM", Layout: "03:04:05 PM"},
+	{Pattern: "00:00:00.0000000 AM", Layout: "03:04:05 PM"},
+	{Pattern: "00:00:00.00000000 AM", Layout: "03:04:05 PM"},
+	{Pattern: "00:00:00.000000000 AM", Layout: "03:04:05 PM"},
+	{Pattern: "00:00 AM", Layout: "03:04 PM"},
 
 	// hh:mm[:ss[.sssssssss]] PM
-	{pattern: "00:00:00 PM", layout: "03:04:05 PM"},
-	{pattern: "00:00:00.0 PM", layout: "03:04:05 PM"},
-	{pattern: "00:00:00.00 PM", layout: "03:04:05 PM"},
-	{pattern: "00:00:00.000 PM", layout: "03:04:05 PM"},
-	{pattern: "00:00:00.00000 PM", layout: "03:04:05 PM"},
-	{pattern: "00:00:00.000000 PM", layout: "03:04:05 PM"},
-	{pattern: "00:00:00.0000000 PM", layout: "03:04:05 PM"},
-	{pattern: "00:00:00.00000000 PM", layout: "03:04:05 PM"},
-	{pattern: "00:00:00.000000000 PM", layout: "03:04:05 PM"},
-	{pattern: "00:00:00.0000000000 PM", layout: "03:04:05 PM"},
-	{pattern: "00:00 PM", layout: "03:04 PM"},
+	{Pattern: "00:00:00 PM", Layout: "03:04:05 PM"},
+	{Pattern: "00:00:00.0 PM", Layout: "03:04:05 PM"},
+	{Pattern: "00:00:00.00 PM", Layout: "03:04:05 PM"},
+	{Pattern: "00:00:00.000 PM", Layout: "03:04:05 PM"},
+	{Pattern: "00:00:00.00000 PM", Layout: "03:04:05 PM"},
+	{Pattern: "00:00:00.000000 PM", Layout: "03:04:05 PM"},
+	{Pattern: "00:00:00.0000000 PM", Layout: "03:04:05 PM"},
+	{Pattern: "00:00:00.00000000 PM", Layout: "03:04:05 PM"},
+	{Pattern: "00:00:00.000000000 PM", Layout: "03:04:05 PM"},
+	{Pattern: "00:00:00.0000000000 PM", Layout: "03:04:05 PM"},
+	{Pattern: "00:00 PM", Layout: "03:04 PM"},
 
 	// hh:mm[:ss[.sssssssss]]AM
-	{pattern: "00:00:00AM", layout: "03:04:05PM"},
-	{pattern: "00:00:00.0AM", layout: "03:04:05PM"},
-	{pattern: "00:00:00.00AM", layout: "03:04:05PM"},
-	{pattern: "00:00:00.000AM", layout: "03:04:05PM"},
-	{pattern: "00:00:00.0000AM", layout: "03:04:05PM"},
-	{pattern: "00:00:00.00000AM", layout: "03:04:05PM"},
-	{pattern: "00:00:00.000000AM", layout: "03:04:05PM"},
-	{pattern: "00:00:00.0000000AM", layout: "03:04:05PM"},
-	{pattern: "00:00:00.00000000AM", layout: "03:04:05PM"},
-	{pattern: "00:00:00.000000000AM", layout: "03:04:05PM"},
-	{pattern: "00:00AM", layout: "03:04PM"},
+	{Pattern: "00:00:00AM", Layout: "03:04:05PM"},
+	{Pattern: "00:00:00.0AM", Layout: "03:04:05PM"},
+	{Pattern: "00:00:00.00AM", Layout: "03:04:05PM"},
+	{Pattern: "00:00:00.000AM", Layout: "03:04:05PM"},
+	{Pattern: "00:00:00.0000AM", Layout: "03:04:05PM"},
+	{Pattern: "00:00:00.00000AM", Layout: "03:04:05PM"},
+	{Pattern: "00:00:00.000000AM", Layout: "03:04:05PM"},
+	{Pattern: "00:00:00.0000000AM", Layout: "03:04:05PM"},
+	{Pattern: "00:00:00.00000000AM", Layout: "03:04:05PM"},
+	{Pattern: "00:00:00.000000000AM", Layout: "03:04:05PM"},
+	{Pattern: "00:00AM", Layout: "03:04PM"},
 
 	// hh:mm[:ss[.sssssssss]]PM
-	{pattern: "00:00:00PM", layout: "03:04:05PM"},
-	{pattern: "00:00:00.0PM", layout: "03:04:05PM"},
-	{pattern: "00:00:00.00PM", layout: "03:04:05PM"},
-	{pattern: "00:00:00.000PM", layout: "03:04:05PM"},
-	{pattern: "00:00:00.0000PM", layout: "03:04:05PM"},
-	{pattern: "00:00:00.00000PM", layout: "03:04:05PM"},
-	{pattern: "00:00:00.000000PM", layout: "03:04:05PM"},
-	{pattern: "00:00:00.0000000PM", layout: "03:04:05PM"},
-	{pattern: "00:00:00.00000000PM", layout: "03:04:05PM"},
-	{pattern: "00:00:00.000000000PM", layout: "03:04:05PM"},
-	{pattern: "00:00PM", layout: "03:04PM"},
+	{Pattern: "00:00:00PM", Layout: "03:04:05PM"},
+	{Pattern: "00:00:00.0PM", Layout: "03:04:05PM"},
+	{Pattern: "00:00:00.00PM", Layout: "03:04:05PM"},
+	{Pattern: "00:00:00.000PM", Layout: "03:04:05PM"},
+	{Pattern: "00:00:00.0000PM", Layout: "03:04:05PM"},
+	{Pattern: "00:00:00.00000PM", Layout: "03:04:05PM"},
+	{Pattern: "00:00:00.000000PM", Layout: "03:04:05PM"},
+	{Pattern: "00:00:00.0000000PM", Layout: "03:04:05PM"},
+	{Pattern: "00:00:00.00000000PM", Layout: "03:04:05PM"},
+	{Pattern: "00:00:00.000000000PM", Layout: "03:04:05PM"},
+	{Pattern: "00:00PM", Layout: "03:04PM"},
 
 	// hhmm[ss] AM
-	{pattern: "000000 AM", layout: "030405 PM"},
-	{pattern: "0000 AM", layout: "0304 PM"},
+	{Pattern: "000000 AM", Layout: "030405 PM"},
+	{Pattern: "0000 AM", Layout: "0304 PM"},
 
 	// hhmm[ss] PM
-	{pattern: "000000 PM", layout: "030405 PM"},
-	{pattern: "0000 PM", layout: "0304 PM"},
+	{Pattern: "000000 PM", Layout: "030405 PM"},
+	{Pattern: "0000 PM", Layout: "0304 PM"},
 
 	// hhmm[ss]AM
-	{pattern: "000000AM", layout: "030405PM"},
-	{pattern: "0000AM", layout: "0304PM"},
+	{Pattern: "000000AM", Layout: "030405PM"},
+	{Pattern: "0000AM", Layout: "0304PM"},
 
 	// hhmm[ss]PM
-	{pattern: "000000PM", layout: "030405PM"},
-	{pattern: "0000PM", layout: "0304PM"},
+	{Pattern: "000000PM", Layout: "030405PM"},
+	{Pattern: "0000PM", Layout: "0304PM"},
 }
 
 // The delim char between time and tz offset.
 var timeTZOffsetDelims = []string{"+", "-", " +", " -"}
 
 var tzOffsetEntries = []trieEntry{
-	{pattern: "00", layout: "07"},
-	{pattern: "0000", layout: "0700"},
-	{pattern: "00:00", layout: "07:00"},
+	{Pattern: "00", Layout: "07"},
+	{Pattern: "0000", Layout: "0700"},
+	{Pattern: "00:00", Layout: "07:00"},
 }
 
 func digitKey(count int) uint64 {
@@ -170,8 +170,8 @@ func keyMapper(s string, index int) (advance int, key uint64) {
 }
 
 func addToTrie(trie *strs.RuneTrie, e trieEntry) {
-	if !trie.Add(e.pattern, e) {
-		panic(fmt.Sprintf("pattern '%s' caused a collision", e.pattern))
+	if !trie.Add(e.Pattern, e) {
+		panic(fmt.Sprintf("pattern '%s' caused a collision", e.Pattern))
 	}
 }
 
@@ -181,21 +181,30 @@ func initDateTimeTrie() *strs.RuneTrie {
 		// date only
 		addToTrie(trie, de)
 		for _, dateTimeDelim := range dateTimeDelims {
+			if dateTimeDelim == "" && de.Pattern != "00000000" {
+				// This is a ugly special case:
+				// We have use case where the input is 202009201234 (basically 2020/09/20 12:34)
+				// However we can't blindly apply "" as a delim to all date/time patterns as it
+				// will cause ambiguity and collisions, such as:
+				//  mm/dd/yyhhmmss vs mm/dd/yyyyhhmm
+				// This using "" as delim only applies to dates being all digits.
+				continue
+			}
 			for _, te := range timeEntries {
 				// date + time
 				addToTrie(
 					trie,
 					trieEntry{
-						pattern: de.pattern + dateTimeDelim + te.pattern,
-						layout:  de.layout + dateTimeDelim + te.layout,
+						Pattern: de.Pattern + dateTimeDelim + te.Pattern,
+						Layout:  de.Layout + dateTimeDelim + te.Layout,
 					})
 				// date + time + "Z"
 				addToTrie(
 					trie,
 					trieEntry{
-						pattern: de.pattern + dateTimeDelim + te.pattern + "Z",
-						layout:  de.layout + dateTimeDelim + te.layout + "Z",
-						tz:      true,
+						Pattern: de.Pattern + dateTimeDelim + te.Pattern + "Z",
+						Layout:  de.Layout + dateTimeDelim + te.Layout + "Z",
+						TZ:      true,
 					})
 				for _, timeTZOffsetDelim := range timeTZOffsetDelims {
 					for _, offset := range tzOffsetEntries {
@@ -203,12 +212,12 @@ func initDateTimeTrie() *strs.RuneTrie {
 						addToTrie(
 							trie,
 							trieEntry{
-								pattern: de.pattern + dateTimeDelim + te.pattern + timeTZOffsetDelim + offset.pattern,
+								Pattern: de.Pattern + dateTimeDelim + te.Pattern + timeTZOffsetDelim + offset.Pattern,
 								// while in trie pattern we need '+' or '-', in actual golang time.Parse/ParseInLocation
 								// call, the layout always uses '-' for tz offset. So need to replace '+' with '-'.
-								layout: de.layout + dateTimeDelim + te.layout +
-									strings.ReplaceAll(timeTZOffsetDelim, "+", "-") + offset.layout,
-								tz: true,
+								Layout: de.Layout + dateTimeDelim + te.Layout +
+									strings.ReplaceAll(timeTZOffsetDelim, "+", "-") + offset.Layout,
+								TZ: true,
 							})
 					}
 				}

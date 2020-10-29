@@ -84,6 +84,30 @@ func TestSmartParse_Success(t *testing.T) {
 			expectedRFC3339: "2020-09-22T12:34:00Z",
 			expectedTZ:      false,
 		},
+		{
+			name:            "yyyymmddhhmm",
+			input:           "202009221234",
+			expectedRFC3339: "2020-09-22T12:34:00Z",
+			expectedTZ:      false,
+		},
+		{
+			name:            "yyyymmddhhmmAM",
+			input:           "202009220934AM",
+			expectedRFC3339: "2020-09-22T09:34:00Z",
+			expectedTZ:      false,
+		},
+		{
+			name:            "yyyymmddhhmmss",
+			input:           "20200922123456",
+			expectedRFC3339: "2020-09-22T12:34:56Z",
+			expectedTZ:      false,
+		},
+		{
+			name:            "yyyymmddhhmmss PM",
+			input:           "20200922123456 PM",
+			expectedRFC3339: "2020-09-22T12:34:56Z",
+			expectedTZ:      false,
+		},
 		// with tz
 		{
 			name:            "yyyy-mm-ddThh:mm:ssZ",
