@@ -12,11 +12,11 @@ import (
 
 func TestAddToTrie(t *testing.T) {
 	trie := strs.NewRuneTrie()
-	addToTrie(trie, trieEntry{pattern: "abc", layout: "123"})
+	addToTrie(trie, trieEntry{Pattern: "abc", Layout: "123"})
 	assert.PanicsWithValue(t,
 		"pattern 'abc' caused a collision",
 		func() {
-			addToTrie(trie, trieEntry{pattern: "abc", layout: "dup"})
+			addToTrie(trie, trieEntry{Pattern: "abc", Layout: "dup"})
 		})
 }
 

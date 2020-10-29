@@ -57,11 +57,11 @@ func SmartParse(s string) (t time.Time, tz bool, err error) {
 	e := v.(trieEntry)
 
 	if loc != nil {
-		t, err = time.ParseInLocation(e.layout, s, loc)
+		t, err = time.ParseInLocation(e.Layout, s, loc)
 		return t, true, err
 	}
-	t, err = time.Parse(e.layout, s)
-	return t, e.tz, err
+	t, err = time.Parse(e.Layout, s)
+	return t, e.TZ, err
 }
 
 func probeTimezoneSuffix(s string) (string, bool) {
