@@ -126,3 +126,25 @@ func TestBPJ_Success(t *testing.T) {
 	pretty := BPJ(`{"Name":"John","Age":65,"Smoker":false,"Hobbies":["flying","fishing","reading"]}`)
 	cupaloy.SnapshotT(t, pretty)
 }
+
+func TestBestEffortMinifyMarshal(t *testing.T) {
+	assert.Equal(t,
+		`{"a":1,"b":false,"c":null,"d":3.14}`,
+		BestEffortMinifyMarshal(map[string]interface{}{"a": 1, "b": false, "c": nil, "d": 3.14}))
+	assert.Equal(t,
+		`{}`,
+		BMM(struct{ Unmarshallable func() }{nil}))
+}
+
+func TestBestEffortMinifyJSON(t *testing.T) {
+	assert.Equal(t,
+		`{"a":1,"b":false,"c":null,"d":3.14}`,
+		BestEffortMinifyJSON(`
+			{
+				"a":	1,
+				"b":    false,
+				"c":	null,
+				"d":	3.14
+			}`))
+	assert.Equal(t, `{}`, BMJ("invalid json"))
+}

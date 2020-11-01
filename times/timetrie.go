@@ -243,6 +243,7 @@ var dateTimeTrie *strs.RuneTrie
 var allTimezones map[string]bool
 
 func init() {
+	// These two initialization routes takes totally in order of 10s of milliseconds. See benchmark in test.
 	dateTimeTrie = initDateTimeTrie()
 	allTimezones = initTimezones()
 }
