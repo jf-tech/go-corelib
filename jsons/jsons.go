@@ -65,3 +65,28 @@ func BestEffortPrettyJSON(jsonStr string) string {
 
 // BPJ is a shortcut (mostly used in tests) to BestEffortPrettyJSON.
 var BPJ = BestEffortPrettyJSON
+
+// BestEffortMinifyMarshal returns a mninified JSON encoding of v. Any error countered will cause "{}" be returned.
+func BestEffortMinifyMarshal(v interface{}) string {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return "{}"
+	}
+	return string(b)
+}
+
+// BMM is a shortcut to BestEffortMinifyMarshal
+var BMM = BestEffortMinifyMarshal
+
+// BestEffortMinifyJSON reformats a json string to be minimal, ignoring any error.
+func BestEffortMinifyJSON(jsonStr string) string {
+	var v interface{}
+	err := json.Unmarshal([]byte(jsonStr), &v)
+	if err != nil {
+		return "{}"
+	}
+	return BestEffortMinifyMarshal(v)
+}
+
+// BMJ is a shortcut to BestEffortMinifyJSON
+var BMJ = BestEffortMinifyJSON
