@@ -134,39 +134,50 @@ func (r *BytesReplacingReader) Read(p []byte) (int, error) {
 	}
 }
 
-// ReadLine reads in a single line from a bufio.Reader.
-func ReadLine(r *bufio.Reader) (string, error) {
-	// Turns out even with various bufio.Reader.Read???() and bufio.Scanner, there is not simple clean
-	// way of reading a single text line in:
-	// - bufio.ReadSlice('\n') doesn't have '\r' dropping. We want a line returned without neither '\n' nor '\r'.
-	// - bufio.ReadLine() drops '\r' and '\n', but has a fixed buf so may be unable to read a whole line in one call.
-	// - bufio.ReadBytes no buf size issue, but doesn't offer '\r' and '\n' cleanup.
+// ByteReadLine reads in a single line from a bufio.Reader and returns it in []byte.
+// Note the returned []byte may be pointing directly into the bufio.Reader, so assume
+// the returned []byte will be invalidated and shouldn't be used upon next ByteReadLine
+// call.
+func ByteReadLine(r *bufio.Reader) ([]byte, error) {
+	// We want to read a line delimited by '\n' in cleanly with trailing '\r' '\n' dropped. Turns out
+	// none of the bufio.Reader.Read???() and bufio.Scanner can do that:
+	// - bufio.ReadSlice('\n') doesn't have '\r' dropping. Also it may need multiple calls to get a single (long) line.
+	// - bufio.ReadLine() drops '\r' and '\n', but may need multiple calls to get a single (long) line.
+	// - bufio.ReadBytes doesn't need multiple calls, but doesn't offer '\r' and '\n' cleanup. Also tons of allocations.
 	// - bufio.ReadString essentially the same as bufio.ReadBytes.
-	// - bufio.Scanner deals with '\r' and '\n' but has fixed buf issue.
-	// Oh, come on!!
+	// - bufio.Scanner deals with '\r' and '\n' but may need multiple calls to get a single (long) line.
 	//
-	// Also found net/textproto's Reader.ReadLine() which meets all the requirements. But to use it
-	// we need to create yet another type of Reader (net.textproto.Reader), as if the
-	// io.Reader -> bufio.Reader isn't enough for us. So decided instead, just shamelessly copy
-	// net.textproto.Reader.ReadLine() here, credit goes to
-	// https://github.com/golang/go/blob/master/src/net/textproto/reader.go. However its test code
-	// coverage is lacking, so create all the new test cases for this ReadLine implementation copy.
+	// Found net/textproto's Reader.ReadLine() which meets all the requirements. But it would become another
+	// dependency. So decided just shamelessly copy net.textproto.Reader.ReadLine() here, credit goes to
+	// https://github.com/golang/go/blob/master/src/net/textproto/reader.go. Its test code coverage is lacking,
+	// so create all the new test cases for this ReadLine implementation copy.
 	var line []byte
 	for {
 		l, more, err := r.ReadLine()
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 		// Avoid the copy if the first call produced a full line.
 		if line == nil && !more {
-			return string(l), nil
+			line = l
+			goto returnLine
 		}
 		line = append(line, l...)
 		if !more {
 			break
 		}
 	}
-	return string(line), nil
+returnLine:
+	if len(line) == 0 {
+		return nil, nil
+	}
+	return line, nil
+}
+
+// ReadLine reads in a single line from a bufio.Reader and returns it in string.
+func ReadLine(r *bufio.Reader) (string, error) {
+	b, err := ByteReadLine(r)
+	return string(b), err
 }
 
 const bom = '\uFEFF'

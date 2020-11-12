@@ -163,47 +163,68 @@ func BenchmarkRegularReader_50KBLength_1000Targets(b *testing.B) {
 	}
 }
 
-func TestReadLine(t *testing.T) {
+func TestByteReadLineAndReadLine(t *testing.T) {
 	for _, test := range []struct {
-		name           string
-		input          string
-		bufsize        int
-		expectedOutput []string
+		name     string
+		input    string
+		bufsize  int
+		expected [][]byte
 	}{
 		{
-			name:           "empty",
-			input:          "",
-			bufsize:        1024,
-			expectedOutput: []string{},
+			name:     "empty",
+			input:    "",
+			bufsize:  1024,
+			expected: nil,
 		},
 		{
-			name:           "single-line with no newline",
-			input:          "   word1, word2 - word3 !@#$%^&*()",
-			bufsize:        1024,
-			expectedOutput: []string{"   word1, word2 - word3 !@#$%^&*()"},
+			name:    "single-line with no newline",
+			input:   "   word1, word2 - word3 !@#$%^&*()",
+			bufsize: 1024,
+			expected: [][]byte{
+				[]byte("   word1, word2 - word3 !@#$%^&*()"),
+			},
 		},
 		{
-			name:           "single-line with '\\r' and '\\n'",
-			input:          "line1\r\n",
-			bufsize:        1024,
-			expectedOutput: []string{"line1"},
+			name:     "single-line with CR and LF",
+			input:    "line1\r\n",
+			bufsize:  1024,
+			expected: [][]byte{[]byte("line1")},
 		},
 		{
-			name:           "multi-line - bufsize enough",
-			input:          "line1\r\nline2\nline3",
-			bufsize:        1024,
-			expectedOutput: []string{"line1", "line2", "line3"},
+			name:     "multi-line - bufsize enough",
+			input:    "line1\r\nline2\nline3",
+			bufsize:  1024,
+			expected: [][]byte{[]byte("line1"), []byte("line2"), []byte("line3")},
 		},
 		{
-			name:           "multi-line - bufsize not enough; also empty line",
-			input:          "line1-0123456789012345\r\n\nline3-0123456789012345",
-			bufsize:        16, // bufio.minReadBufferSize is 16.
-			expectedOutput: []string{"line1-0123456789012345", "", "line3-0123456789012345"},
+			name:     "multi-line - bufsize not enough; also empty line",
+			input:    "line1-0123456789012345\r\n\nline3-0123456789012345",
+			bufsize:  16, // bufio.minReadBufferSize is 16.
+			expected: [][]byte{[]byte("line1-0123456789012345"), nil, []byte("line3-0123456789012345")},
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			r := bufio.NewReaderSize(strings.NewReader(test.input), test.bufsize)
-			output := []string{}
+			var outputBytes [][]byte
+			for {
+				line, err := ByteReadLine(r)
+				if err != nil {
+					assert.Nil(t, line)
+					assert.Equal(t, io.EOF, err)
+					break
+				}
+				if line != nil {
+					// note the []byte returned by ByteReadLine can be invalidated upon next call, so
+					// let's make a copy of it, thus the seemingly unnecessary `[]byte(string(line))`.
+					outputBytes = append(outputBytes, []byte(string(line)))
+				} else {
+					outputBytes = append(outputBytes, line)
+				}
+			}
+			assert.Equal(t, test.expected, outputBytes)
+
+			r = bufio.NewReaderSize(strings.NewReader(test.input), test.bufsize)
+			outputBytes = outputBytes[:0]
 			for {
 				line, err := ReadLine(r)
 				if err != nil {
@@ -211,9 +232,13 @@ func TestReadLine(t *testing.T) {
 					assert.Equal(t, io.EOF, err)
 					break
 				}
-				output = append(output, line)
+				if line == "" {
+					outputBytes = append(outputBytes, nil)
+				} else {
+					outputBytes = append(outputBytes, []byte(line))
+				}
 			}
-			assert.Equal(t, test.expectedOutput, output)
+			assert.Equal(t, test.expected, outputBytes)
 		})
 	}
 }
