@@ -109,6 +109,39 @@ func TestBuildFQDN(t *testing.T) {
 	}
 }
 
+func TestBuildFQDNWithEsc(t *testing.T) {
+	for _, test := range []struct {
+		name     string
+		namelets []string
+		expected string
+	}{
+		{
+			name:     "nil",
+			namelets: nil,
+			expected: "",
+		},
+		{
+			name:     "empty",
+			namelets: []string{},
+			expected: "",
+		},
+		{
+			name:     "single with space, dot, and percent",
+			namelets: []string{"o n%.e"},
+			expected: "o n%%%.e",
+		},
+		{
+			name:     "multiple",
+			namelets: []string{"o n%.e", ".", "%three%"},
+			expected: "o n%%%.e.%..%%three%%",
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(t, test.expected, BuildFQDNWithEsc(test.namelets...))
+		})
+	}
+}
+
 func TestLastNameletOfFQDN(t *testing.T) {
 	for _, test := range []struct {
 		name     string
@@ -143,6 +176,49 @@ func TestLastNameletOfFQDN(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			assert.Equal(t, test.expected, LastNameletOfFQDN(test.fqdn))
+		})
+	}
+}
+
+func TestLastNameletOfFQDNWithEsc(t *testing.T) {
+	for _, test := range []struct {
+		name     string
+		fqdn     string
+		expected string
+	}{
+		{
+			name:     "empty",
+			fqdn:     "",
+			expected: "",
+		},
+		{
+			name:     "no delimiter, no esc",
+			fqdn:     "abc",
+			expected: "abc",
+		},
+		{
+			name:     "no delimiter, with esc",
+			fqdn:     "%.a%b%%c",
+			expected: ".ab%c",
+		},
+		{
+			name:     "delimiter at beginning",
+			fqdn:     ".a%.bc",
+			expected: "a.bc",
+		},
+		{
+			name:     "delimiter at the end",
+			fqdn:     "a%%bc.",
+			expected: "",
+		},
+		{
+			name:     "fqdn",
+			fqdn:     "o n%%%.e.%..%%three%%",
+			expected: "%three%",
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(t, test.expected, LastNameletOfFQDNWithEsc(test.fqdn))
 		})
 	}
 }
