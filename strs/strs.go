@@ -54,9 +54,11 @@ func CopyStrPtr(sp *string) *string {
 const (
 	// FQDNDelimiter is the default FQDN delimiter.
 	FQDNDelimiter = "."
+	// FQDNEsc is the default escape char for FQDN. Esc is used for escaping "." and itselfxw.x
+	FQDNEsc = "%"
 )
 
-// BuildFQDN builds an FQDN from a slice of namelet strings.
+// BuildFQDN builds an FQDN (dot delimited) from a slice of namelet strings.
 func BuildFQDN(namelets ...string) string {
 	return BuildFQDN2(FQDNDelimiter, namelets...)
 }
@@ -66,9 +68,22 @@ func BuildFQDN2(delimiter string, namelets ...string) string {
 	return strings.Join(namelets, delimiter)
 }
 
+var fqdnEscReplacer = strings.NewReplacer(".", "%.", "%", "%%")
+
+// BuildFQDNWithEsc builds an FQDN (dot delimited) from a slice of namelet strings with proper escaping.
+// e.g. If namelets are 'a.b', 'c%d', it will return 'a%.b.c%%d'.
+// Note this function isn't optimized for alloc/perf.
+func BuildFQDNWithEsc(namelets ...string) string {
+	return strings.Join(
+		NoErrMapSlice(namelets, func(s string) string {
+			return fqdnEscReplacer.Replace(s)
+		}),
+		FQDNDelimiter)
+}
+
 // LastNameletOfFQDN returns the last namelet of an FQDN delimited by default
 // delimiter. If there is no delimiter in the FQDN, then the FQDN itself is
-// // returned.
+// returned.
 func LastNameletOfFQDN(fqdn string) string {
 	return LastNameletOfFQDN2(FQDNDelimiter, fqdn)
 }
@@ -82,6 +97,15 @@ func LastNameletOfFQDN2(delimiter, fqdn string) string {
 		return fqdn
 	}
 	return fqdn[index+1:]
+}
+
+// LastNameletOfFQDNWithEsc returns the last namelet of an FQDN delimited by default
+// delimiter, with escaping considered. If there is no delimiter in the FQDN, then the
+// FQDN itself is returned.
+// Note this function isn't optimized for alloc/perf.
+func LastNameletOfFQDNWithEsc(fqdn string) string {
+	namelets := SplitWithEsc(fqdn, FQDNDelimiter, FQDNEsc)
+	return Unescape(namelets[len(namelets)-1], FQDNEsc)
 }
 
 // CopySlice copies a string slice. The returned slice is guaranteed to be a different
