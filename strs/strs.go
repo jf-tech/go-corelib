@@ -54,7 +54,7 @@ func CopyStrPtr(sp *string) *string {
 const (
 	// FQDNDelimiter is the default FQDN delimiter.
 	FQDNDelimiter = "."
-	// FQDNEsc is the default escape char for FQDN. Esc is used for escaping "." and itselfxw.x
+	// FQDNEsc is the default escape char for FQDN. Esc is used for escaping "." and itself.
 	FQDNEsc = "%"
 )
 
