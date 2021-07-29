@@ -75,7 +75,7 @@ func (r *BytesReplacingReader) Reset(r1 io.Reader, search1, replace1 [][]byte) *
 	r.search = search1
 	r.searchLen = func() int {
 		var length int
-		for _, index := range search1 {
+		for _, index := range r.search {
 			length += len(index)
 		}
 		return length
@@ -83,7 +83,7 @@ func (r *BytesReplacingReader) Reset(r1 io.Reader, search1, replace1 [][]byte) *
 	r.replace = replace1
 	r.replaceLen = func() int {
 		var length int
-		for _, index := range replace1 {
+		for _, index := range r.replace {
 			length += len(index)
 		}
 		return length
@@ -132,7 +132,7 @@ func (r *BytesReplacingReader) Read(p []byte) (int, error) {
 					index := bytes.Index(r.buf[r.buf0:r.buf1], key)
 					if index < 0 {
 						r.buf0 = max(r.buf0, r.buf1-r.searchLen+1)
-						break
+						continue
 					}
 					index += r.buf0
 					copy(r.buf[index+r.replaceLen:r.buf1+r.lenDelta], r.buf[index+r.searchLen:r.buf1])
