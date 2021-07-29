@@ -73,21 +73,9 @@ func (r *BytesReplacingReader) Reset(r1 io.Reader, search1, replace1 [][]byte) *
 	}
 	r.r = r1
 	r.search = search1
-	r.searchLen = func() int {
-		var length int
-		for _, index := range r.search {
-			length += len(index)
-		}
-		return length
-	}()
+	r.searchLen = len(search1[0])
 	r.replace = replace1
-	r.replaceLen = func() int {
-		var length int
-		for _, index := range r.replace {
-			length += len(index)
-		}
-		return length
-	}()
+	r.replaceLen = len(replace1[0])
 	r.lenDelta = r.replaceLen - r.searchLen // could be negative
 	r.err = nil
 	bufSize := max(defaultBufSize, max(r.searchLen, r.replaceLen))
@@ -128,18 +116,16 @@ func (r *BytesReplacingReader) Read(p []byte) (int, error) {
 		if n > 0 {
 			r.buf1 += n
 			for {
-				for id, key := range r.search {
-					index := bytes.Index(r.buf[r.buf0:r.buf1], key)
-					if index < 0 {
-						r.buf0 = max(r.buf0, r.buf1-r.searchLen+1)
-						continue
-					}
-					index += r.buf0
-					copy(r.buf[index+r.replaceLen:r.buf1+r.lenDelta], r.buf[index+r.searchLen:r.buf1])
-					copy(r.buf[index:index+r.replaceLen], r.replace[id])
-					r.buf0 = index + r.replaceLen
-					r.buf1 = r.lenDelta
+				index := bytes.Index(r.buf[r.buf0:r.buf1], r.search[0])
+				if index < 0 {
+					r.buf0 = max(r.buf0, r.buf1-r.searchLen+1)
+					break
 				}
+				index += r.buf0
+				copy(r.buf[index+r.replaceLen:r.buf1+r.lenDelta], r.buf[index+r.searchLen:r.buf1])
+				copy(r.buf[index:index+r.replaceLen], r.replace[0])
+				r.buf0 = index + r.replaceLen
+				r.buf1 += r.lenDelta
 			}
 		}
 		if r.err != nil {
