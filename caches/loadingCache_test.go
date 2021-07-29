@@ -9,7 +9,7 @@ import (
 	"github.com/antchfx/xpath"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/jf-tech/go-corelib/maths"
+	"github.com/carterpeel/go-corelib/maths"
 )
 
 func TestNewLoadingCache(t *testing.T) {

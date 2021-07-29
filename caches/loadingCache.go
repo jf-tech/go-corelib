@@ -5,7 +5,7 @@ import (
 
 	lru "github.com/hashicorp/golang-lru"
 
-	"github.com/jf-tech/go-corelib/maths"
+	"github.com/carterpeel/go-corelib/maths"
 )
 
 // LoadingCache is a key/value cache with a user specified loading function and an optional capacity.

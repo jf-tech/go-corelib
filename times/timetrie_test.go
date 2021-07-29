@@ -6,8 +6,8 @@ import (
 	"github.com/bradleyjkemp/cupaloy"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/jf-tech/go-corelib/jsons"
-	"github.com/jf-tech/go-corelib/strs"
+	"github.com/carterpeel/go-corelib/jsons"
+	"github.com/carterpeel/go-corelib/strs"
 )
 
 func TestAddToTrie(t *testing.T) {

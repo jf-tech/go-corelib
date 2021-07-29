@@ -3,8 +3,8 @@ package times
 import (
 	"time"
 
-	"github.com/jf-tech/go-corelib/caches"
-	"github.com/jf-tech/go-corelib/strs"
+	"github.com/carterpeel/go-corelib/caches"
+	"github.com/carterpeel/go-corelib/strs"
 )
 
 // OverwriteTZ takes the literal values of y/m/d/h/m/s of a time.Time and uses them

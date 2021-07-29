@@ -8,7 +8,7 @@ import (
 	"github.com/bradleyjkemp/cupaloy"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/jf-tech/go-corelib/jsons"
+	"github.com/carterpeel/go-corelib/jsons"
 )
 
 func intPtr(n int) *int {

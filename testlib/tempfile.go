@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/jf-tech/go-corelib/strs"
+	"github.com/carterpeel/go-corelib/strs"
 )
 
 // CreateTempFileWithContent creates a temp file with desired content in it

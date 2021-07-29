@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/jf-tech/go-corelib/testlib"
+	"github.com/carterpeel/go-corelib/testlib"
 )
 
 func TestFileExists(t *testing.T) {

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jf-tech/go-corelib/caches"
+	"github.com/carterpeel/go-corelib/caches"
 )
 
 // SmartParse parses a date time string and returns a time.Time and a tz flag indicates whether the

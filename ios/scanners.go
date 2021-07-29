@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"io"
 
-	"github.com/jf-tech/go-corelib/strs"
+	"github.com/carterpeel/go-corelib/strs"
 )
 
 // ScannerByDelimFlag is the type of flags passed to NewScannerByDelim/NewScannerByDelim2.

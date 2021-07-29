@@ -8,7 +8,7 @@ import (
 
 	"github.com/tkuchiki/go-timezone"
 
-	"github.com/jf-tech/go-corelib/strs"
+	"github.com/carterpeel/go-corelib/strs"
 )
 
 type trieEntry struct {
