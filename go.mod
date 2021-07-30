@@ -1,4 +1,4 @@
-module github.com/carterpeel/go-corelib
+module github.com/jf-tech/go-corelib
 
 go 1.12
 
