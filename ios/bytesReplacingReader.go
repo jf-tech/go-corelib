@@ -143,7 +143,12 @@ func (r *singleSearchReplaceReplacer) GetSizingHints() (int, int, float64) {
 }
 
 func (r *singleSearchReplaceReplacer) Index(buf []byte) (int, []byte, []byte) {
-	return bytes.Index(buf, r.search), r.search, r.replace
+	switch {
+	case len(r.search) == 1:
+		return bytes.IndexByte(buf, r.search[0]), r.search, r.replace
+	default:
+		
+	}
 }
 
 // NewBytesReplacingReader creates a new `*BytesReplacingReader` for a single pair of search:replace token replacement.
