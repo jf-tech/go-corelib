@@ -122,13 +122,13 @@ func createMultiAlphanumericalTestInput(length int, numTokens int, tokenLength i
 }
 
 var testInput70MBLength500Targets = createTestInput(100*1024*1024, 500)
-var testInput100MBLength64Targets, testInput400MBLength64TargetsTokens, testInput400MBLength64TargetsReplaces = createMultiAlphanumericalTestInput(1000*1024*1024, 1024, 1024)
+var testInput1000MBLength64Targets, testInput1000MBLength64TargetsTokens, testInput1000MBLength64TargetsReplaces = createMultiAlphanumericalTestInput(1000*1024*1024, 1024, 1024)
 var testInput1KBLength20Targets = createTestInput(1024, 20)
 var testInput50KBLength1000Targets = createTestInput(50*1024, 1000)
 var testSearchFor = []byte{7}
 var testReplaceWith = []byte{8}
 var testReplacer = &singleSearchReplaceReplacer{search: testSearchFor, replace: testReplaceWith}
-var testMultiTokenReplacer = &multiTokenReplacer{searches: testInput400MBLength64TargetsTokens, replaces: testInput400MBLength64TargetsReplaces}
+var testMultiTokenReplacer = &multiTokenReplacer{searches: testInput1000MBLength64TargetsTokens, replaces: testInput1000MBLength64TargetsReplaces}
 func BenchmarkBytesReplacingReader_70MBLength_500Targets(b *testing.B) {
 	r := &BytesReplacingReader{}
 	for i := 0; i < b.N; i++ {
@@ -154,7 +154,7 @@ func BenchmarkBytesReplacingReader_1KBLength_20Targets(b *testing.B) {
 func BenchmarkBytesMultiTokenReader_100MBLength_64Targets(b *testing.B) {
 	r := &BytesReplacingReader{}
 	for i := 0; i < b.N; i++ {
-		r.ResetEx(bytes.NewReader(testInput100MBLength64Targets), testMultiTokenReplacer)
+		r.ResetEx(bytes.NewReader(testInput1000MBLength64Targets), testMultiTokenReplacer)
 		_, _ = ioutil.ReadAll(r)
 	}
 }
