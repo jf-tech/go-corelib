@@ -1,9 +1,13 @@
 package ios
 
+import "C"
 import (
 	"bytes"
+	"fmt"
 	"io"
+	"unsafe"
 )
+
 
 // BytesReplacer allows customization on how BytesReplacingReader does sizing estimate during
 // initialization/reset and does search and replacement during the execution.
@@ -37,14 +41,7 @@ type BytesReplacingReader struct {
 	max int
 }
 
-const defaultBufSize = int(4096)
-
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
-}
+const defaultBufSize = int(8192*2)
 
 // ResetEx allows reuse of a previous allocated `*BytesReplacingReader` for buf allocation optimization.
 func (r *BytesReplacingReader) ResetEx(r1 io.Reader, replacer BytesReplacer) *BytesReplacingReader {
@@ -143,11 +140,14 @@ func (r *singleSearchReplaceReplacer) GetSizingHints() (int, int, float64) {
 }
 
 func (r *singleSearchReplaceReplacer) Index(buf []byte) (int, []byte, []byte) {
+	//return bytes.Index(buf, r.search), r.search, r.replace
 	switch {
 	case len(r.search) == 1:
 		return bytes.IndexByte(buf, r.search[0]), r.search, r.replace
 	default:
-		
+		fmt.Println("TBM: ", int(C.TBM((*C.uchar)(unsafe.Pointer(&buf[0])), C.size_t(len(buf)), (*C.uchar)(unsafe.Pointer(&r.search[0])), C.size_t(len(r.search)))))
+		fmt.Println("Rabin-Karp: ", bytes.Index(buf, r.search))
+		return bytes.Index(buf, r.search), r.search, r.replace
 	}
 }
 
@@ -161,3 +161,4 @@ func NewBytesReplacingReader(r io.Reader, search, replace []byte) *BytesReplacin
 func NewBytesReplacingReaderEx(r io.Reader, replacer BytesReplacer) *BytesReplacingReader {
 	return (&BytesReplacingReader{}).ResetEx(r, replacer)
 }
+

@@ -3,12 +3,12 @@ package ios
 import (
 	"bytes"
 	"fmt"
+	"github.com/stretchr/testify/assert"
+	"github.com/tjarratt/babble"
 	"io/ioutil"
 	"math/rand"
 	"strings"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func TestBytesReplacingReader(t *testing.T) {
@@ -91,13 +91,44 @@ func createTestInput(length int, numTarget int) []byte {
 	return b
 }
 
-var testInput70MBLength500Targets = createTestInput(70*1024*1024, 500)
+func createMultiAlphanumericalTestInput(length int, numTokens int, tokenLength int) ([]byte, [][]byte, [][]byte) {
+	rand.Seed(1234)
+	b := make([]byte, length)
+	babbler := babble.NewBabbler()
+	words := make([][]byte, 64)
+	for i := 0; i < 64; i++ {
+		word := babbler.Babble()
+		words[i] = []byte(word)
+	}
+	tokenWords := make([][]byte, numTokens)
+	for i := 0; i < numTokens; i++ {
+		tokenWords[i] = words[rand.Intn(63)]
+	}
+	for i := 0; i < length; {
+		r := make([]byte, 0)
+		for cur := 0; cur < tokenLength; {
+			w := words[rand.Intn(63)]
+			r = append(r, w...)
+			cur += len(w)
+		}
+		b = append(b, r...)
+		i += len(r)
+	}
+	replaces := make([][]byte, numTokens)
+	for i := 0; i < numTokens; i++ {
+		replaces[i] = []byte(fmt.Sprintf("REPLACED-%d", i))
+	}
+	return b, tokenWords, replaces
+}
+
+var testInput70MBLength500Targets = createTestInput(100*1024*1024, 500)
+var testInput100MBLength64Targets, testInput400MBLength64TargetsTokens, testInput400MBLength64TargetsReplaces = createMultiAlphanumericalTestInput(1000*1024*1024, 1024, 1024)
 var testInput1KBLength20Targets = createTestInput(1024, 20)
 var testInput50KBLength1000Targets = createTestInput(50*1024, 1000)
 var testSearchFor = []byte{7}
 var testReplaceWith = []byte{8}
 var testReplacer = &singleSearchReplaceReplacer{search: testSearchFor, replace: testReplaceWith}
-
+var testMultiTokenReplacer = &multiTokenReplacer{searches: testInput400MBLength64TargetsTokens, replaces: testInput400MBLength64TargetsReplaces}
 func BenchmarkBytesReplacingReader_70MBLength_500Targets(b *testing.B) {
 	r := &BytesReplacingReader{}
 	for i := 0; i < b.N; i++ {
@@ -116,6 +147,14 @@ func BenchmarkBytesReplacingReader_1KBLength_20Targets(b *testing.B) {
 	r := &BytesReplacingReader{}
 	for i := 0; i < b.N; i++ {
 		r.ResetEx(bytes.NewReader(testInput1KBLength20Targets), testReplacer)
+		_, _ = ioutil.ReadAll(r)
+	}
+}
+
+func BenchmarkBytesMultiTokenReader_100MBLength_64Targets(b *testing.B) {
+	r := &BytesReplacingReader{}
+	for i := 0; i < b.N; i++ {
+		r.ResetEx(bytes.NewReader(testInput100MBLength64Targets), testMultiTokenReplacer)
 		_, _ = ioutil.ReadAll(r)
 	}
 }
