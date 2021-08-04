@@ -156,7 +156,7 @@ func (r *multiTokenReplacer) GetSizingHints() (int, int, float64) {
 	maxSearchLen := 0
 	maxReplaceLen := 0
 	maxRatio := float64(-1)
-	for i, _ := range r.searches {
+	for i := range r.searches {
 		searchLen := len(r.searches[i])
 		replaceLen := len(r.replaces[i])
 		if searchLen > maxSearchLen {
@@ -176,7 +176,7 @@ func (r *multiTokenReplacer) GetSizingHints() (int, int, float64) {
 }
 
 func (r *multiTokenReplacer) Index(buf []byte) (int, []byte, []byte) {
-	for i, _ := range r.searches {
+	for i := range r.searches {
 		index := bytes.Index(buf, r.searches[i])
 		if index >= 0 {
 			return index, r.searches[i], r.replaces[i]
