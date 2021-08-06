@@ -1,11 +1,9 @@
 package ios
 
-import "C"
 import (
 	"bytes"
 	"io"
 )
-
 
 // BytesReplacer allows customization on how BytesReplacingReader does sizing estimate during
 // initialization/reset and does search and replacement during the execution.
@@ -18,12 +16,12 @@ type BytesReplacer interface {
 	//        if none of the search/replace ratio is less than 1, then return a negative number.
 	// will only be called once during BytesReplacingReader initialization/reset.
 	GetSizingHints() (int, int, float64)
-	// Index does token search for BytesReplacingReader.
+	// BestIndex does token search for BytesReplacingReader.
 	// Return values:
 	// - 1st: index of the first found search token; -1, if not found;
 	// - 2nd: the found search token; ignored if not found;
 	// - 3rd: the matching replace token; ignored if not found;
-	Index(buf []byte) (int, []byte, []byte)
+	BestIndex(buf []byte) (int, []byte, []byte)
 }
 
 // BytesReplacingReader allows transparent replacement of a given token during read operation.
@@ -39,7 +37,7 @@ type BytesReplacingReader struct {
 	max int
 }
 
-const defaultBufSize = int(4096)
+const defaultBufSize = 4096
 
 // ResetEx allows reuse of a previous allocated `*BytesReplacingReader` for buf allocation optimization.
 func (r *BytesReplacingReader) ResetEx(r1 io.Reader, replacer BytesReplacer) *BytesReplacingReader {
@@ -98,7 +96,7 @@ func (r *BytesReplacingReader) Read(p []byte) (int, error) {
 		if n > 0 {
 			r.buf1 += n
 			for {
-				index, search, replace := r.replacer.Index(r.buf[r.buf0:r.buf1])
+				index, search, replace := r.replacer.BestIndex(r.buf[r.buf0:r.buf1])
 				if index < 0 {
 					r.buf0 = max(r.buf0, r.buf1-r.maxSearchTokenLen+1)
 					break
@@ -123,27 +121,75 @@ func (r *BytesReplacingReader) Read(p []byte) (int, error) {
 }
 
 type singleSearchReplaceReplacer struct {
-	search  []byte
-	replace []byte
+	search     []byte
+	replace    []byte
+	slide      [256]int
+	searchLen  int
+	replaceLen int
 }
 
 func (r *singleSearchReplaceReplacer) GetSizingHints() (int, int, float64) {
-	searchLen := len(r.search)
-	replaceLen := len(r.replace)
+	r.searchLen = len(r.search)
+	r.replaceLen = len(r.replace)
 	ratio := float64(-1)
-	if searchLen < replaceLen {
-		ratio = float64(searchLen) / float64(replaceLen)
+	if r.searchLen < r.replaceLen {
+		ratio = float64(r.searchLen) / float64(r.replaceLen)
 	}
-	return searchLen, replaceLen, ratio
+	for i := 0; i < 24; i++ {
+		r.slide[i]--
+	}
+	for i := 0; i < len(r.search); i++ {
+		r.slide[(r.search)[i]] = i
+	}
+	return r.searchLen, r.replaceLen, ratio
 }
 
-func (r *singleSearchReplaceReplacer) Index(buf []byte) (int, []byte, []byte) {
+
+// BestIndex Finds the best indexing option for `r.search` in `buf`, and runs it.
+// If `len(r.search) == 1`, then `bytes.IndexByte()` is used. (SIMD ASM implementation)
+// If `len(r.search) == 0`, then we can assume `r.search` is nowhere and everywhere. (returns 0)
+// If `len(r.search) > len(buf)`, then we can assume that `r.search` does not exist under any circumstances. (returns -1)
+// If `len(buf) == len(r.search)`, then we can assume the plausibility of `buf == r.search`. From here, we can check it using `bytes.Equal()`. (returns 0 if true)
+// If all other conditions are untrue, then the Boyer-Moore indexing algorithm is used to get the position of `r.search` inside `buf`.
+// Returns -1 if `r.search` is not contained within `buf`.
+func (r *singleSearchReplaceReplacer) BestIndex(buf []byte) (int, []byte, []byte) {
 	switch {
-	case len(r.search) == 1:
+	case r.searchLen == 1:
 		return bytes.IndexByte(buf, r.search[0]), r.search, r.replace
+	case r.searchLen == 0:
+		return 0, r.search, r.replace
+	case r.searchLen > len(buf):
+		fallthrough
+	case len(buf) == 0:
+		return -1, r.search, r.replace
+	case len(buf) == r.searchLen:
+		if bytes.Equal(buf, r.search) {
+			return 0, r.search, r.replace
+		}
+		return -1, r.search, r.replace
 	default:
-		return IndexWithTable(buf, r.search), r.search, r.replace
+		for i := 0; i+r.searchLen-1 < len(buf); {
+			j := r.searchLen - 1
+			for ; j >= 0 && buf[i+j] == r.search[j]; j-- {}
+			if j < 0 {
+				return i, r.search, r.replace
+			}
+			slid := j - r.slide[buf[i+j]]
+			if slid < 1 {
+				slid = 1
+			}
+			i += slid
+		}
+		return -1, r.search, r.replace
+		//return r.BoyerMooreIndex(buf, r.search), r.search, r.replace
 	}
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
 
 // NewBytesReplacingReader creates a new `*BytesReplacingReader` for a single pair of search:replace token replacement.

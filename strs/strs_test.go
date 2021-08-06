@@ -562,14 +562,14 @@ func TestByteIndexWithEsc(t *testing.T) {
 		expected int
 	}{
 		{
-			name:     "esc nil; bytes.Index used",
+			name:     "esc nil; bytes.BestIndex used",
 			s:        []byte("abc#ef##g"),
 			delim:    []byte("##"),
 			esc:      nil,
 			expected: 6,
 		},
 		{
-			name:     "esc non-empty; delim nil; bytes.Index used",
+			name:     "esc non-empty; delim nil; bytes.BestIndex used",
 			s:        []byte("abc#ef##g"),
 			delim:    nil,
 			esc:      []byte("%"),
