@@ -39,6 +39,15 @@ type BytesReplacingReader struct {
 
 const defaultBufSize = 4096
 
+// SetBufferSize sets the buffer size of the current `*BytesReplacingReader`.
+// If newBufSize is smaller than the current buffer, nothing is changed.
+func (r *BytesReplacingReader) SetBufferSize(newBufSize int) {
+	if newBufSize < cap(r.buf) {
+		return
+	}
+	r.buf = make([]byte, newBufSize)
+}
+
 // ResetEx allows reuse of a previous allocated `*BytesReplacingReader` for buf allocation optimization.
 func (r *BytesReplacingReader) ResetEx(r1 io.Reader, replacer BytesReplacer) *BytesReplacingReader {
 	if r1 == nil {
@@ -144,7 +153,6 @@ func (r *singleSearchReplaceReplacer) GetSizingHints() (int, int, float64) {
 	return r.searchLen, r.replaceLen, ratio
 }
 
-
 // BestIndex Finds the best indexing option for `r.search` in `buf`, and runs it.
 // If `len(r.search) == 1`, then `bytes.IndexByte()` is used. (SIMD ASM implementation)
 // If `len(r.search) == 0`, then we can assume `r.search` is nowhere and everywhere. (returns 0)
@@ -170,7 +178,8 @@ func (r *singleSearchReplaceReplacer) BestIndex(buf []byte) (int, []byte, []byte
 	default:
 		for i := 0; i+r.searchLen-1 < len(buf); {
 			j := r.searchLen - 1
-			for ; j >= 0 && buf[i+j] == r.search[j]; j-- {}
+			for ; j >= 0 && buf[i+j] == r.search[j]; j-- {
+			}
 			if j < 0 {
 				return i, r.search, r.replace
 			}
@@ -181,7 +190,6 @@ func (r *singleSearchReplaceReplacer) BestIndex(buf []byte) (int, []byte, []byte
 			i += slid
 		}
 		return -1, r.search, r.replace
-		//return r.BoyerMooreIndex(buf, r.search), r.search, r.replace
 	}
 }
 
@@ -202,4 +210,3 @@ func NewBytesReplacingReader(r io.Reader, search, replace []byte) *BytesReplacin
 func NewBytesReplacingReaderEx(r io.Reader, replacer BytesReplacer) *BytesReplacingReader {
 	return (&BytesReplacingReader{}).ResetEx(r, replacer)
 }
-
