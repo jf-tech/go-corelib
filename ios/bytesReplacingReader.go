@@ -178,8 +178,7 @@ func (r *singleSearchReplaceReplacer) BestIndex(buf []byte) (int, []byte, []byte
 	default:
 		for i := 0; i+r.searchLen-1 < len(buf); {
 			j := r.searchLen - 1
-			for ; j >= 0 && buf[i+j] == r.search[j]; j-- {
-			}
+			for ; j >= 0 && buf[i+j] == r.search[j]; j-- {}
 			if j < 0 {
 				return i, r.search, r.replace
 			}
