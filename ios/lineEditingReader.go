@@ -13,7 +13,7 @@ import (
 // appending at the end of the original `line` will result in undefined behavior.
 type LineEditFunc func(line []byte) ([]byte, error)
 
-// LineReader implements io.Reader interface with a line editing mechanism. LineReader reads data from
+// LineEditingReader implements io.Reader interface with a line editing mechanism. LineEditingReader reads data from
 // underlying io.Reader and invokes the caller supplied edit function for each of the line (defined as
 // []byte ending with '\n', therefore it works on both Mac/Linux and Windows, where '\r\n' is used).
 // Note the last line before EOF will be edited as well even if it doesn't end with '\n'. Usage is highly
@@ -21,7 +21,7 @@ type LineEditFunc func(line []byte) ([]byte, error)
 // stripping, or word replacement, etc., as long as the line length isn't changed; or it can replace a line
 // with a completely newly allocated and written line with no length restriction (although performance
 // would be slower compared to in-place editing).
-type LineReader struct {
+type LineEditingReader struct {
 	r       io.Reader
 	edit    LineEditFunc
 	bufSize int    // initial buf size and future buf growth increment.
@@ -31,7 +31,7 @@ type LineReader struct {
 	err     error
 }
 
-func (r *LineReader) scanLF(buf []byte) int {
+func (r *LineEditingReader) scanLF(buf []byte) int {
 	if lf := bytes.IndexByte(buf, '\n'); lf >= 0 {
 		return lf
 	}
@@ -41,8 +41,8 @@ func (r *LineReader) scanLF(buf []byte) int {
 	return -1
 }
 
-// Read implements io.Reader interface for LineReader.
-func (r *LineReader) Read(p []byte) (int, error) {
+// Read implements io.Reader interface for LineEditingReader.
+func (r *LineEditingReader) Read(p []byte) (int, error) {
 	n := 0
 	for {
 		if r.buf0 > 0 {
@@ -102,10 +102,10 @@ func (r *LineReader) Read(p []byte) (int, error) {
 	}
 }
 
-// NewLineReader2 creates a new LineReader with custom buffer size.
-func NewLineReader2(r io.Reader, edit LineEditFunc, bufSize int) *LineReader {
+// NewLineEditingReader2 creates a new LineEditingReader with custom buffer size.
+func NewLineEditingReader2(r io.Reader, edit LineEditFunc, bufSize int) *LineEditingReader {
 	buf := make([]byte, bufSize)
-	return &LineReader{
+	return &LineEditingReader{
 		r:       r,
 		edit:    edit,
 		bufSize: bufSize,
@@ -114,10 +114,10 @@ func NewLineReader2(r io.Reader, edit LineEditFunc, bufSize int) *LineReader {
 }
 
 const (
-	defaultLineReaderBufSize = 1024
+	defaultLineEditingReaderBufSize = 1024
 )
 
-// NewLineReader creates a new LineReader with the default buffer size.
-func NewLineReader(r io.Reader, edit LineEditFunc) *LineReader {
-	return NewLineReader2(r, edit, defaultLineReaderBufSize)
+// NewLineEditingReader creates a new LineEditingReader with the default buffer size.
+func NewLineEditingReader(r io.Reader, edit LineEditFunc) *LineEditingReader {
+	return NewLineEditingReader2(r, edit, defaultLineEditingReaderBufSize)
 }

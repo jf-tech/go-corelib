@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestLineReaderWithCustomBufSize(t *testing.T) {
+func TestLineEditingReader_CustomBufSize(t *testing.T) {
 	for _, test := range []struct {
 		name     string
 		editFunc LineEditFunc
@@ -61,7 +61,7 @@ func TestLineReaderWithCustomBufSize(t *testing.T) {
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			ret, err := ioutil.ReadAll(NewLineReader2(strings.NewReader(test.input), test.editFunc, test.bufSize))
+			ret, err := ioutil.ReadAll(NewLineEditingReader2(strings.NewReader(test.input), test.editFunc, test.bufSize))
 			if test.err != "" {
 				assert.Error(t, err)
 				assert.Equal(t, test.err, err.Error())
@@ -73,13 +73,13 @@ func TestLineReaderWithCustomBufSize(t *testing.T) {
 	}
 }
 
-func TestNewLineReader(t *testing.T) {
+func TestNewLineEdtingReader(t *testing.T) {
 	// Test against a real scenario where we need to strip each line's leading '|' pipe character.
 	// See details at: https://github.com/jf-tech/omniparser/pull/154
 	input := "|HDR|1|2|3|\n\n|DAT|X|\n|EOF|"
 	expected := "HDR|1|2|3|\n\nDAT|X|\nEOF|"
 	ret, err := ioutil.ReadAll(
-		NewLineReader(
+		NewLineEditingReader(
 			strings.NewReader(input),
 			func(line []byte) ([]byte, error) {
 				if len(line) < 2 || line[0] != '|' {
@@ -92,15 +92,16 @@ func TestNewLineReader(t *testing.T) {
 }
 
 var (
-	lineReaderBenchInputLine = "|HDR|1|2|3|4|5|6|7|8|9|\n"
-	lineReaderBenchInput     = strings.Repeat(lineReaderBenchInputLine, 10000)
-	lineReaderBenchOutput    = strings.Repeat(strings.TrimLeft(lineReaderBenchInputLine, "|"), 10000)
+	lineEditingReaderBenchInputLine = "|HDR|1|2|3|4|5|6|7|8|9|\n"
+	lineEditingReaderBenchInput     = strings.Repeat(lineEditingReaderBenchInputLine, 10000)
+	lineEditingReaderBenchOutput    = strings.Repeat(
+		strings.TrimLeft(lineEditingReaderBenchInputLine, "|"), 10000)
 )
 
-func TestLineReaderBench(t *testing.T) {
+func TestLineEditingReaderBenchCorrectness(t *testing.T) {
 	ret, err := ioutil.ReadAll(
-		NewLineReader(
-			strings.NewReader(lineReaderBenchInput),
+		NewLineEditingReader(
+			strings.NewReader(lineEditingReaderBenchInput),
 			func(line []byte) ([]byte, error) {
 				if len(line) < 2 || line[0] != '|' {
 					return line, nil
@@ -108,20 +109,20 @@ func TestLineReaderBench(t *testing.T) {
 				return line[1:], nil
 			}))
 	assert.NoError(t, err)
-	assert.Equal(t, lineReaderBenchOutput, string(ret))
+	assert.Equal(t, lineEditingReaderBenchOutput, string(ret))
 }
 
-func BenchmarkLineReader_RawIORead(b *testing.B) {
+func BenchmarkLineEditingReader_RawIORead(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		_, _ = ioutil.ReadAll(strings.NewReader(lineReaderBenchInput))
+		_, _ = ioutil.ReadAll(strings.NewReader(lineEditingReaderBenchInput))
 	}
 }
 
-func BenchmarkLineReader_UseLineReader(b *testing.B) {
+func BenchmarkLineEditingReader_UseLineEditingReader(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		_, _ = ioutil.ReadAll(
-			NewLineReader(
-				strings.NewReader(lineReaderBenchInput),
+			NewLineEditingReader(
+				strings.NewReader(lineEditingReaderBenchInput),
 				func(line []byte) ([]byte, error) {
 					if len(line) < 2 || line[0] != '|' {
 						return line, nil
@@ -131,13 +132,13 @@ func BenchmarkLineReader_UseLineReader(b *testing.B) {
 	}
 }
 
-func BenchmarkLineReader_CompareWithBytesReplacingReader(b *testing.B) {
+func BenchmarkLineEditingReader_CompareWithBytesReplacingReader(b *testing.B) {
 	search := []byte("|H")
 	replace := []byte("H")
 	for i := 0; i < b.N; i++ {
 		_, _ = ioutil.ReadAll(
 			NewBytesReplacingReader(
-				strings.NewReader(lineReaderBenchInput),
+				strings.NewReader(lineEditingReaderBenchInput),
 				search,
 				replace))
 	}
