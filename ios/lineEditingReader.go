@@ -31,7 +31,7 @@ type LineEditingReader struct {
 	err     error
 }
 
-func (r *LineEditingReader) scanLF(buf []byte) int {
+func (r *LineEditingReader) scanEndOfLine(buf []byte) int {
 	if lf := bytes.IndexByte(buf, '\n'); lf >= 0 {
 		return lf
 	}
@@ -63,8 +63,8 @@ func (r *LineEditingReader) Read(p []byte) (int, error) {
 
 		n, r.err = r.r.Read(r.buf[r.buf1:])
 		r.buf1 += n
-		lf := r.scanLF(r.buf[r.buf0:r.buf1])
-		for ; lf >= 0; lf = r.scanLF(r.buf[r.buf0:r.buf1]) {
+		lf := r.scanEndOfLine(r.buf[r.buf0:r.buf1])
+		for ; lf >= 0; lf = r.scanEndOfLine(r.buf[r.buf0:r.buf1]) {
 			lineLen := lf + 1
 			edited, err := r.edit(r.buf[r.buf0 : r.buf0+lineLen])
 			if err != nil {
