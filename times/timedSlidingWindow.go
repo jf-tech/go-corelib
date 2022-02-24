@@ -83,6 +83,7 @@ func NewTimedSlidingWindow(cfg TimedSlidingWindowCfg) *TimedSlidingWindow {
 }
 */
 
+// TimedSlidingWindowI64 offers a way to aggregate int64 values over a time-based sliding window.
 type TimedSlidingWindowI64 struct {
 	clock          Clock
 	window, bucket time.Duration
@@ -93,6 +94,7 @@ type TimedSlidingWindowI64 struct {
 	total          int64
 }
 
+// Add adds a new int64 value into the current sliding window.
 func (t *TimedSlidingWindowI64) Add(amount int64) {
 	now := t.clock.Now()
 	idx := int(now.Sub(t.startTime) / t.bucket)
@@ -122,11 +124,13 @@ func (t *TimedSlidingWindowI64) Add(amount int64) {
 	}
 }
 
+// Total returns the aggregated int64 value over the current sliding window.
 func (t *TimedSlidingWindowI64) Total() int64 {
 	t.Add(0)
 	return t.total
 }
 
+// Reset resets the sliding window and clear the existing aggregated value.
 func (t *TimedSlidingWindowI64) Reset() {
 	for i := 0; i < t.n; i++ {
 		t.buckets[i] = 0
@@ -136,6 +140,12 @@ func (t *TimedSlidingWindowI64) Reset() {
 	t.total = 0
 }
 
+// NewTimedSlidingWindowI64 creates a new time-based sliding window for int64 value
+// aggregation. window is the sliding window "width", and bucket is the granularity of
+// how the window is divided. Both must be non-zero and window must be of an integer
+// multiple of bucket. Be careful of not making bucket too small as it would increase
+// the internal bucket memory allocation.  If no clock is passed in, then os time.Now
+// clock will be used.
 func NewTimedSlidingWindowI64(window, bucket time.Duration, clock ...Clock) *TimedSlidingWindowI64 {
 	if window == 0 || bucket == 0 || window%bucket != 0 {
 		panic("window must be a non-zero multiple of non-zero bucket")
