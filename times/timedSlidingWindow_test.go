@@ -65,6 +65,26 @@ func TestTimedSlidingWindowI64(t *testing.T) {
 	})
 }
 
+func TestTimedSlidingWindowI64_ContinousIncr(t *testing.T) {
+	tc := &testClock{}
+	sw := NewTimedSlidingWindowI64(5*time.Second, 1*time.Second, tc)
+	test := func(adv time.Duration, add int64, expected []int64) {
+		tc.adv(adv)
+		sw.Add(add)
+		assert.Equal(t, expected, sw.buckets)
+		total := int64(0)
+		for i := 0; i < len(expected); i++ {
+			total += expected[i]
+		}
+		assert.Equal(t, total, sw.Total())
+	}
+	expected := []int64{0, 0, 0, 0, 0}
+	for i := 0; i < 100; i++ {
+		expected[(i+1)%len(expected)] = int64(i)
+		test(time.Second, int64(i), expected)
+	}
+}
+
 const (
 	tswBenchSeed          = int64(1234)
 	tswBenchWindow        = time.Minute
