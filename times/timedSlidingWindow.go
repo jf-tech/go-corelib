@@ -2,8 +2,6 @@ package times
 
 import (
 	"time"
-
-	"github.com/jf-tech/go-corelib/maths"
 )
 
 /*
@@ -108,9 +106,10 @@ func (t *TimedSlidingWindowI64) Add(amount int64) {
 			t.buckets[i%t.n] = 0
 		}
 		t.end = (t.start + idx) % t.n
-		newStart := maths.MaxInt(t.start+idx-t.n+1, t.start)
-		t.startTime = t.startTime.Add(time.Duration(newStart-t.start) * t.bucket)
-		t.start = newStart
+		if idx >= t.n {
+			t.startTime = t.startTime.Add(time.Duration(idx-t.n+1) * t.bucket)
+			t.start = (t.start + idx - t.n + 1) % t.n
+		}
 		t.buckets[t.end] += amount
 		t.total += amount
 	} else {
