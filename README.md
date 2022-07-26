@@ -5,6 +5,8 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/jf-tech/go-corelib)](https://goreportcard.com/report/github.com/jf-tech/go-corelib)
 [![PkgGoDev](https://pkg.go.dev/badge/github.com/jf-tech/go-corelib)](https://pkg.go.dev/github.com/jf-tech/go-corelib)
 
-A Library of Core Data Structures, Algorithms and Functions in Golang
+A Library of Core Data Structures, Algorithms and Functions in Golang.
+
+**Please kindly consider sponsoring the project to fund future development and issue resolutions**: https://github.com/sponsors/jf-tech
 
 Go Version: 1.12.17
